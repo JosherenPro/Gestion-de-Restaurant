@@ -23,8 +23,8 @@ Une API robuste et performante pour la gestion complète d'un restaurant, constr
 
 1. **Cloner le dépôt**
    ```bash
-   git clone <repository-url>
-   cd projet_restaurant/backend
+   git clone https://github.com/JosherenPro/Gestion-de-Restaurant.git
+   cd Gestion-de-Restaurant/backend
    ```
 
 2. **Configurer l'environnement**
