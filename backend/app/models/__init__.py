@@ -1,0 +1,16 @@
+from app.models.utilisateur import Utilisateur
+from app.models.client import Client
+from app.models.personnel import Personnel
+from app.models.gerant import Gerant
+from app.models.cuisinier import Cuisinier
+from app.models.serveur import Serveur
+# Ajoute tous les autres modèles ici aussi
+from app.models.commande import Commande
+from app.models.reservation import Reservation
+from app.models.avis import Avis
+from app.models.table import RestaurantTable
+from app.models.ligne_commande import LigneCommande
+from app.models.menu import Menu
+from app.models.plat import Plat
+from app.models.categorie import Categorie
+from app.models.paiement import Paiement

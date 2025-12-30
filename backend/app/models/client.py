@@ -1,0 +1,25 @@
+from sqlmodel import SQLModel, Field, Relationship
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.avis import Avis
+    from app.models.commande import Commande
+    from app.models.reservation import Reservation
+    from app.models.utilisateur import Utilisateur
+
+
+class Client(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    utilisateur_id: int = Field(
+        foreign_key="utilisateur.id",
+        index=True
+    )
+
+    # pour les relations ORM permet de lier avec la table utilisateur
+    utilisateur: "Utilisateur" = Relationship(
+        back_populates="clients"
+    )
+    avis: list["Avis"] = Relationship(back_populates="client")
+    commandes: list["Commande"] = Relationship(back_populates="client")
+    reservations: list["Reservation"] = Relationship(back_populates="client")
