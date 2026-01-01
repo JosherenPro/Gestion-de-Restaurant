@@ -20,7 +20,8 @@ L'API utilise des tokens **JWT** porteurs (Bearer Tokens).
 ### 2. Verification de l'Email
 Suite a l'inscription, un lien est envoye par mail.
 - **GET** `/auth/verify?token=XYZ`
-- **Note** : Le login est bloque tant que cette etape n'est pas effectuee.
+- **Expirabilite** : Le lien expire apres **24 heures**.
+- **Note** : Le login est bloque (Erreur 403) tant que cette etape n'est pas effectuee.
 
 ### 3. Utilisation
 Ajoutez le header suivant a toutes vos requetes protegees :
@@ -40,6 +41,7 @@ Elements accessibles pour l'affichage de la carte.
 - **GET** `/categories/` : Liste des categories.
 - **GET** `/plats/` : Liste de tous les plats.
 - **POST** `/plats/` (Gerant uniquement) : Creer un plat.
+- **POST** `/plats/{id}/image` : Uploader/Changer la photo d'un plat (Multipart/form-data).
 
 ---
 

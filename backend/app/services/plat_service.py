@@ -3,6 +3,8 @@ from app.schemas.plat import PlatCreate, PlatRead, PlatUpdate
 
 from sqlmodel import Session, select
 from typing import List
+from fastapi import UploadFile
+from app.services.storage_service import save_upload_file, delete_old_image
 
 from app.core.database import get_session
 
@@ -76,3 +78,25 @@ def update_plat(
 def list_plats(session: Session, skip: int = 0, limit: int = 100) -> List[Plat]:
     statement = select(Plat).offset(skip).limit(limit)
     return session.exec(statement).all()
+
+
+def update_plat_image(session: Session, plat_id: int, file: UploadFile) -> Plat | None:
+    """Mettre à jour l'image d'un plat."""
+    plat = session.get(Plat, plat_id)
+    if not plat:
+        return None
+    
+    # 1. Supprimer l'ancienne image si elle existe
+    if plat.image_url:
+        delete_old_image(plat.image_url)
+    
+    # 2. Sauvegarder la nouvelle image
+    image_url = save_upload_file(file, folder="plats")
+    
+    # 3. Mettre à jour la base de données
+    plat.image_url = image_url
+    session.add(plat)
+    session.commit()
+    session.refresh(plat)
+    
+    return plat

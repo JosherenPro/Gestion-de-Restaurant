@@ -17,8 +17,14 @@ from app.routers import (
     admin
 )
 from app.core.database import create_db_and_tables
+from fastapi.staticfiles import StaticFiles
+import os
 
 app = FastAPI(title="Restaurant API")
+
+# Monter le dossier static pour servir les images
+os.makedirs("app/static/uploads", exist_ok=True)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.on_event("startup")
 def on_startup():

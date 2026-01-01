@@ -43,10 +43,24 @@ def list_clients(session: Session, skip: int = 0, limit: int = 100) -> List[Clie
     return session.exec(statement).all()
 
 def delete_client(session: Session, client_id: int) -> Client | None:
-    """Supprimer un client."""
+    """Supprimer un client et son utilisateur associé."""
     db_client = session.get(Client, client_id)
     if not db_client:
         return None
+    
+    # Récupérer l'utilisateur associé avant de supprimer le client
+    utilisateur_id = db_client.utilisateur_id
+    
+    # Supprimer le client
     session.delete(db_client)
     session.commit()
+    
+    # Supprimer l'utilisateur associé
+    from app.models.utilisateur import Utilisateur
+    utilisateur = session.get(Utilisateur, utilisateur_id)
+    if utilisateur:
+        session.delete(utilisateur)
+        session.commit()
+    
     return db_client
+

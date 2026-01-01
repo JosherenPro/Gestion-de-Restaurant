@@ -39,9 +39,14 @@ Chaque entite suit generalement ce triptyque :
   "prix": 1500,
   "categorie_id": 2,
   "disponible": true,
-  "image_url": "string | null"
+  "image_url": "string (ex: /static/uploads/plats/abc.jpg) | null"
 }
 ```
+
+**UPLOAD IMAGE : POST /plats/{id}/image**
+- **Content-Type** : `multipart/form-data`
+- **Body** : champ `file` (Binary Image)
+- **Action** : L'API renomme le fichier, le stocke, supprime l'ancienne photo et met à jour l'URL en BD automatically.
 
 ---
 

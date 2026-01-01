@@ -6,13 +6,14 @@ Ce document liste l'ensemble des points d'accès (endpoints) de l'application et
 | Methode | Route | Description |
 | :--- | :--- | :--- |
 | POST | `/auth/token` | Connexion utilisateur (Recupere un token JWT). |
-| GET | `/auth/verify` | Confirmer l'inscription via le jeton recu par mail. |
+| GET | `/auth/verify` | Confirmer l'inscription (Token expire apres 24h). |
 
 ## Utilisateurs & Profils (`/utilisateurs`, `/clients`, `/personnel`)
 | Methode | Route | Description |
 | :--- | :--- | :--- |
 | POST | `/clients/register` | Inscription publique pour les clients. |
 | GET | `/clients/` | Liste tous les clients (Staff seul). |
+| DELETE | `/clients/{id}` | Supprime un client ET son compte utilisateur. |
 | POST | `/personnel/register/gerants` | Creer un gerant (Manager seul). |
 | POST | `/personnel/register/serveurs` | Creer un serveur (Manager seul). |
 | POST | `/personnel/register/cuisiniers` | Creer un cuisinier (Manager seul). |
@@ -32,6 +33,7 @@ Ce document liste l'ensemble des points d'accès (endpoints) de l'application et
 | :--- | :--- | :--- |
 | GET | `/plats/` | Liste tous les plats. |
 | POST | `/plats/` | Ajouter un plat (Manager). |
+| POST | `/plats/{id}/image` | Uploader l'image d'un plat (Manager). |
 | GET | `/categories/` | Liste les categories (Entrées, Plats, Desserts). |
 | POST | `/categories/` | Ajouter une categorie (Manager). |
 | GET | `/menus/` | Liste les menus/formules. |

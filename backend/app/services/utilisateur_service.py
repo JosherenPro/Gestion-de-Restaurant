@@ -124,8 +124,13 @@ def verify_email_token(session: Session, token: str) -> bool:
         return False
     
     # Vérifier que le token n'a pas expiré
-    if utilisateur.verification_token_expires and utilisateur.verification_token_expires < datetime.now(timezone.utc):
-        return False
+    if utilisateur.verification_token_expires:
+        # Simplification extrême : on enlève toute info de timezone des deux côtés
+        expires_at = utilisateur.verification_token_expires.replace(tzinfo=None)
+        now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+        
+        if expires_at < now_utc:
+            return False
     
     utilisateur.is_verified = True
     utilisateur.verification_token = None

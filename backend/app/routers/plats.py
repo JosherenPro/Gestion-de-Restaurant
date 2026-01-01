@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body, Path, HTTPException
+from fastapi import APIRouter, Depends, Body, Path, HTTPException, File, UploadFile
 from sqlmodel import Session
 from app.core.database import get_session
 
@@ -8,7 +8,8 @@ from app.services.plat_service import (
     list_plats,
     read_plat,
     create_plat,
-    get_plat_by_nom
+    get_plat_by_nom,
+    update_plat_image
 )       
 
 from app.schemas.plat import (
@@ -100,3 +101,16 @@ def list_plats_endpoint(
     return list_plats(session)
 
 
+@router.post("/{plat_id}/image", response_model=PlatRead)
+async def upload_plat_image_endpoint(
+    session: Session = Depends(get_session),
+    plat_id: int = Path(...),
+    file: UploadFile = File(...)
+) -> any:
+    """
+    Télécharger une image pour un plat
+    """
+    plat = update_plat_image(session, plat_id, file)
+    if not plat:
+        raise HTTPException(status_code=404, detail="Plat non trouvé")
+    return plat
