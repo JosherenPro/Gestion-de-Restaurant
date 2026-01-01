@@ -10,6 +10,7 @@ from app.security.hashing import hash_password
 import secrets
 from fastapi import BackgroundTasks
 from app.services.email_service import send_verification_email
+from datetime import datetime, timedelta, timezone
 
 
 
@@ -33,6 +34,8 @@ def create_utilisateur(
         raise ValueError("Ce numéro de téléphone est déjà utilisé")
 
     token = secrets.token_urlsafe(32)
+    token_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+    
     utilisateur = Utilisateur(
         nom=utilisateur_in.nom,
         prenom=utilisateur_in.prenom,
@@ -41,7 +44,8 @@ def create_utilisateur(
         role=utilisateur_in.role,
         hashed_password=hash_password(utilisateur_in.password),
         is_verified=False,
-        verification_token=token
+        verification_token=token,
+        verification_token_expires=token_expires
     )
     # ajouter l'utilisateur a la session
     session.add(utilisateur)
@@ -119,8 +123,13 @@ def verify_email_token(session: Session, token: str) -> bool:
     if not utilisateur:
         return False
     
+    # Vérifier que le token n'a pas expiré
+    if utilisateur.verification_token_expires and utilisateur.verification_token_expires < datetime.now(timezone.utc):
+        return False
+    
     utilisateur.is_verified = True
-    utilisateur.verification_token = None # On vide le token après usage
+    utilisateur.verification_token = None
+    utilisateur.verification_token_expires = None
     session.add(utilisateur)
     session.commit()
     return True

@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     MAIL_SSL_TLS: bool = False
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
+    
+    # Frontend URL for email verification links
+    FRONTEND_URL: str
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(BASE_DIR, ".env"),

@@ -24,7 +24,8 @@ async def send_verification_email(email: str, token: str):
     """
     Envoie un véritable email de vérification via SMTP.
     """
-    verification_link = f"http://localhost:8000/auth/verify?token={token}"
+    # Utiliser l'URL du backend pour la vérification
+    verification_link = f"{settings.FRONTEND_URL}/auth/verify?token={token}"
     
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">

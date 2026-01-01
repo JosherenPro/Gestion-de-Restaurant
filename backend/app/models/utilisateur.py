@@ -22,6 +22,7 @@ class Utilisateur(UtilisateurBase, table=True):
     active: bool = True
     is_verified: bool = False
     verification_token: str | None = Field(default=None, index=True)
+    verification_token_expires: datetime | None = None
     date_creation: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
