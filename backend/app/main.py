@@ -18,9 +18,20 @@ from app.routers import (
 )
 from app.core.database import create_db_and_tables
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
 app = FastAPI(title="Restaurant API")
+
+# Configuration CORS
+# En développement, on peut autoriser tout. En production, vous pourrez restreindre à votre URL Vercel.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Autoriser tous les domaines
+    allow_credentials=True,
+    allow_methods=["*"], # Autoriser toutes les méthodes (GET, POST, etc.)
+    allow_headers=["*"], # Autoriser tous les headers
+)
 
 # Monter le dossier static pour servir les images
 os.makedirs("app/static/uploads", exist_ok=True)

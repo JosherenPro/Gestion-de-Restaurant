@@ -66,8 +66,8 @@ fastapi dev app/main.py
 ```
 
 Accédez à la documentation interactive :
-- **Swagger UI** : [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Redoc** : [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Swagger UI** : [https://gestion-de-restaurant.onrender.com/docs](https://gestion-de-restaurant.onrender.com/docs)
+- **Redoc** : [https://gestion-de-restaurant.onrender.com/redoc](https://gestion-de-restaurant.onrender.com/redoc)
 
 ## Documentation pour le Frontend
 
