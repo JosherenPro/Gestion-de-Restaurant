@@ -7,6 +7,11 @@ from pydantic import EmailStr
 logger = logging.getLogger("app.email")
 logger.setLevel(logging.INFO)
 
+# Configuration automatique pour MAIL_STARTTLS et MAIL_SSL_TLS selon le port
+# Port 465 = SSL/TLS, Port 587 = STARTTLS
+is_ssl_tls = settings.MAIL_PORT == 465
+is_starttls = settings.MAIL_PORT == 587
+
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
@@ -14,8 +19,8 @@ conf = ConnectionConfig(
     MAIL_PORT=settings.MAIL_PORT,
     MAIL_SERVER=settings.MAIL_SERVER,
     MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
-    MAIL_STARTTLS=settings.MAIL_STARTTLS,
-    MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
+    MAIL_STARTTLS=is_starttls,
+    MAIL_SSL_TLS=is_ssl_tls,
     USE_CREDENTIALS=settings.USE_CREDENTIALS,
     VALIDATE_CERTS=settings.VALIDATE_CERTS
 )

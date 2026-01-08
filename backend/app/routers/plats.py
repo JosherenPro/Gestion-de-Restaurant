@@ -22,11 +22,10 @@ from app.security.rbac import allow_gerant
 
 router = APIRouter(
     prefix="/plats",
-    tags=["Plats"],
-    dependencies=[Depends(allow_gerant)]
+    tags=["Plats"]
 )
 
-@router.post("/", response_model=PlatRead)
+@router.post("/", response_model=PlatRead, dependencies=[Depends(allow_gerant)])
 async def create_plat_endpoint(
     session: Session = Depends(get_session),
     plat_in: PlatCreate = Body(...)
@@ -65,7 +64,7 @@ async def read_plat_by_nom_endpoint(
     return plat
 
 
-@router.delete("/{plat_id}", response_model=PlatRead)
+@router.delete("/{plat_id}", response_model=PlatRead, dependencies=[Depends(allow_gerant)])
 async def delete_plat_endpoint(
     session: Session = Depends(get_session),
     plat_id: int = Path(...)
@@ -79,7 +78,7 @@ async def delete_plat_endpoint(
     return plat
 
 
-@router.put("/{plat_id}", response_model=PlatRead)
+@router.put("/{plat_id}", response_model=PlatRead, dependencies=[Depends(allow_gerant)])
 async def update_plat_endpoint(
     session: Session = Depends(get_session),
     plat_id: int = Path(...),
@@ -101,7 +100,7 @@ def list_plats_endpoint(
     return list_plats(session)
 
 
-@router.post("/{plat_id}/image", response_model=PlatRead)
+@router.post("/{plat_id}/image", response_model=PlatRead, dependencies=[Depends(allow_gerant)])
 async def upload_plat_image_endpoint(
     session: Session = Depends(get_session),
     plat_id: int = Path(...),

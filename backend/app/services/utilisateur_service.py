@@ -20,34 +20,54 @@ def create_utilisateur(
     utilisateur_in: UtilisateurCreate,
     background_tasks: BackgroundTasks
 ) -> Utilisateur:
-    """Creer un nouvel utilidateur dans la base de donnees."""
+    """Creer un nouvel utilisateur dans la base de donnees.
+    Si l'utilisateur existe déjà mais n'est pas vérifié, on met à jour ses informations.
+    """
     # Verifier si l'email existe deja
     statement_email = select(Utilisateur).where(Utilisateur.email == utilisateur_in.email)
     existing_user_email = session.exec(statement_email).first()
-    if existing_user_email:
-        raise ValueError("Cet email est déjà utilisé")
-
+    
     # Verifier si le numero de telephone existe deja
     statement_phone = select(Utilisateur).where(Utilisateur.telephone == utilisateur_in.telephone)
     existing_user_phone = session.exec(statement_phone).first()
-    if existing_user_phone:
-        raise ValueError("Ce numéro de téléphone est déjà utilisé")
+
+    # Si l'un ou l'autre existe, on vérifie s'il est vérifié
+    existing_user = existing_user_email or existing_user_phone
+    
+    if existing_user:
+        if existing_user.is_verified:
+            if existing_user_email:
+                raise ValueError("Cet email est déjà utilisé")
+            else:
+                raise ValueError("Ce numéro de téléphone est déjà utilisé")
+        else:
+            # L'utilisateur existe mais n'est pas vérifié, on le met à jour
+            utilisateur = existing_user
+            utilisateur.nom = utilisateur_in.nom
+            utilisateur.prenom = utilisateur_in.prenom
+            utilisateur.email = utilisateur_in.email
+            utilisateur.telephone = utilisateur_in.telephone
+            utilisateur.role = utilisateur_in.role
+            utilisateur.hashed_password = hash_password(utilisateur_in.password)
+    else:
+        # Nouvel utilisateur
+        utilisateur = Utilisateur(
+            nom=utilisateur_in.nom,
+            prenom=utilisateur_in.prenom,
+            email=utilisateur_in.email,
+            telephone=utilisateur_in.telephone,
+            role=utilisateur_in.role,
+            hashed_password=hash_password(utilisateur_in.password)
+        )
 
     token = secrets.token_urlsafe(32)
     token_expires = datetime.now(timezone.utc) + timedelta(hours=24)
     
-    utilisateur = Utilisateur(
-        nom=utilisateur_in.nom,
-        prenom=utilisateur_in.prenom,
-        email=utilisateur_in.email,
-        telephone=utilisateur_in.telephone,
-        role=utilisateur_in.role,
-        hashed_password=hash_password(utilisateur_in.password),
-        is_verified=False,
-        verification_token=token,
-        verification_token_expires=token_expires
-    )
-    # ajouter l'utilisateur a la session
+    utilisateur.is_verified = False
+    utilisateur.verification_token = token
+    utilisateur.verification_token_expires = token_expires
+    
+    # ajouter l'utilisateur a la session (ou le mettre à jour)
     session.add(utilisateur)
     session.commit()
     session.refresh(utilisateur)

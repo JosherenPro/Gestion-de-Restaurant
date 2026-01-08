@@ -6,8 +6,6 @@ from typing import List
 from fastapi import UploadFile
 from app.services.storage_service import save_upload_file, delete_old_image
 
-from app.core.database import get_session
-
 
 
 
