@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 class UtilisateurBase(SQLModel):
     nom: str
     prenom: str
-    email: EmailStr = Field(unique=True, index=True)
-    telephone: str = Field(unique=True, index=True)
+    email: EmailStr = Field(default=None, index=True, unique=True)
+    telephone: str = Field(default=None, index=True, unique=True)
     role: str
 
 
