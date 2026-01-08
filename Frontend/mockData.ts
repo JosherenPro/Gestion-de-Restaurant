@@ -1,6 +1,5 @@
-
-
 import { MenuItem, Table, OrderStatus, Order, StaffMember, UserRole, Reservation, Categorie } from './types';
+import { API_CONFIG } from './config/api.config';
 
 // Helper function to convert backend MenuItem to display format
 export const formatMenuItem = (item: MenuItem): MenuItem & { name: string; price: number; category: string; image: string; isAvailable: boolean } => {
@@ -9,7 +8,7 @@ export const formatMenuItem = (item: MenuItem): MenuItem & { name: string; price
     name: item.nom,
     price: item.prix / 100, // Convert from centimes to euros
     category: item.categorie?.nom || '',
-    image: item.image_url ? `http://localhost:8000${item.image_url}` : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&h=300',
+    image: item.image_url ? `${API_CONFIG.BASE_URL}${item.image_url}` : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&h=300',
     isAvailable: item.disponible,
   };
 };
