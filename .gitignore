@@ -1,0 +1,2 @@
+# éviter d'inclure les fichiers de projet de visual studio
+.vs
