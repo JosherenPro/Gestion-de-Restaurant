@@ -13,25 +13,13 @@ import { Loader } from 'lucide-react';
  * en fonction du rôle de l'utilisateur connecté
  */
 export const RoleBasedRouter: React.FC = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-[#FC8A06] mx-auto" />
-          <p className="mt-4 text-gray-500">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
+  const [guestClient, setGuestClient] = React.useState(false);
 
   // Pas connecté -> Login
   if (!user) {
-    return <LoginView onGuestAccess={() => {
-      // Option: permettre un accès invité au menu client
-      window.location.href = '/client';
-    }} />;
+    if (guestClient) return <ClientView />;
+    return <LoginView onGuestAccess={() => setGuestClient(true)} />;
   }
 
   // Redirection selon le rôle

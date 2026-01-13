@@ -8,11 +8,16 @@ interface LoginViewProps {
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ onGuestAccess }) => {
-  const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const { login, loginAsGuest } = useAuth();
+const [email, setEmail] = useState('');
+const [password, setPassword] = useState('');
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+
+const handleGuest = () => {
+  loginAsGuest();
+  onGuestAccess?.();
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +51,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onGuestAccess }) => {
             fullWidth
             variant="outline"
             className="mb-6 h-14 bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
-            onClick={onGuestAccess}
+            onClick={handleGuest}
           >
             <Smartphone className="w-5 h-5" />
             Accéder au menu (Client)
@@ -132,7 +137,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onGuestAccess }) => {
             </p>
             <div className="space-y-2 text-xs text-gray-500">
               <div className="bg-gray-50 p-3 rounded-xl">
-                <p className="font-bold text-[#FC8A06]">????? Gérant</p>
+                <p className="font-bold text-[#FC8A06]">?? Gérant</p>
                 <p className="mt-1">Email: <span className="font-mono">gerant@resto.com</span></p>
                 <p>Mot de passe: <span className="font-mono">password123</span></p>
               </div>

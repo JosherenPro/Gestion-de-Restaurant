@@ -1,11 +1,17 @@
 export const API_CONFIG = {
-BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-  ENDPOINTS: {
+BASE_URL: import.meta.env.VITE_API_URL || 'https://gestion-de-restaurant.onrender.com',
+ENDPOINTS: {
     // Auth
     AUTH: {
       TOKEN: '/auth/token',
       VERIFY: '/auth/verify',
-      ME: '/auth/me',
+      ME: '/utilisateurs/email',
+    },
+    // Utilisateurs
+    UTILISATEURS: {
+      BASE: '/utilisateurs',
+      BY_ID: (id: number) => `/utilisateurs/${id}`,
+      BY_EMAIL: (email: string) => `/utilisateurs/email/${encodeURIComponent(email)}`,
     },
     // Clients
     CLIENTS: {

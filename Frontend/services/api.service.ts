@@ -115,15 +115,16 @@ class ApiService {
     const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
-    
+
     const response = await fetch(`${this.baseUrl}${API_CONFIG.ENDPOINTS.AUTH.TOKEN}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Cache-Control': 'no-store',
       },
       body: formData.toString(),
     });
-    
+
     return this.handleResponse(response);
   }
 
@@ -131,8 +132,41 @@ class ApiService {
     return this.get(`${API_CONFIG.ENDPOINTS.AUTH.VERIFY}?token=${token}`);
   }
 
+  /**
+   * Decode JWT token to extract payload
+   */
+  private decodeJWT(token: string): { sub?: string; exp?: number } | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = parts[1];
+      const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get current user from token by decoding JWT and fetching user by email
+   */
   async getCurrentUser(token: string): Promise<any> {
-    return this.get(API_CONFIG.ENDPOINTS.AUTH.ME, { token });
+    // Decode JWT to get email (sub claim)
+    const payload = this.decodeJWT(token);
+    if (!payload?.sub) {
+      throw new Error('Token invalide');
+    }
+    
+    const email = payload.sub;
+    // Fetch user by email
+    return this.get(API_CONFIG.ENDPOINTS.UTILISATEURS.BY_EMAIL(email), { token });
+  }
+
+  /**
+   * Get user by email
+   */
+  async getUserByEmail(email: string, token: string): Promise<any> {
+    return this.get(API_CONFIG.ENDPOINTS.UTILISATEURS.BY_EMAIL(email), { token });
   }
 
   // Categories endpoints

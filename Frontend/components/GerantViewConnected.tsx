@@ -3,17 +3,19 @@ import { Card, Button, Modal } from './UI';
 import { 
   BarChart3, Users, UtensilsCrossed, DollarSign, Calendar, 
   TrendingUp, Package, Settings, Plus, Edit, Trash2, Loader,
-  Eye, FileText, MapPin, ChefHat
+  Eye, FileText, MapPin, ChefHat, LogOut
 } from 'lucide-react';
 import { apiService } from '../services/api.service';
 import { MenuItem, Stats, TopPlat, Table, Reservation } from '../types';
 import { formatPrice } from '../mockData';
 import { ReservationManagerView } from './ReservationManagerView';
+import { useAuth } from '../context/AuthContext';
 
 type TabType = 'DASHBOARD' | 'MENU' | 'PERSONNEL' | 'TABLES' | 'RESERVATIONS' | 'STATS';
 
 export const GerantViewConnected: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('DASHBOARD');
+const { logout, user } = useAuth();
+const [activeTab, setActiveTab] = useState<TabType>('DASHBOARD');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -381,10 +383,19 @@ export const GerantViewConnected: React.FC = () => {
                 <p className="text-xs text-gray-500">Système de gestion complet</p>
               </div>
             </div>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Paramètres
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">
+                ?? {user?.prenom || user?.nom || user?.email}
+              </span>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 text-red-500 hover:bg-red-50 hover:border-red-200"
+                onClick={logout}
+              >
+                <LogOut className="w-4 h-4" />
+                Déconnexion
+              </Button>
+            </div>
           </div>
         </div>
       </header>
