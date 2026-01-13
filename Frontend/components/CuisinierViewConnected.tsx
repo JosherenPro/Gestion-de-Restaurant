@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button } from './UI';
-import { ChefHat, Timer, Play, Check, Box, EyeOff, Eye, Loader, RefreshCw } from 'lucide-react';
+import { ChefHat, Timer, Play, Check, Box, EyeOff, Eye, Loader, RefreshCw, LogOut } from 'lucide-react';
 import { apiService } from '../services/api.service';
 import { Order, OrderStatus, MenuItem } from '../types';
 import { formatPrice } from '../mockData';
+import { useAuth } from '../context/AuthContext';
 
 export const CuisinierViewConnected: React.FC = () => {
+  const { logout, user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [activeTab, setActiveTab] = useState<'COMMANDES' | 'STOCK'>('COMMANDES');
@@ -106,11 +108,11 @@ export const CuisinierViewConnected: React.FC = () => {
             <ChefHat className="text-[#FC8A06] w-10 h-10" /> CUISINE DIRECT
           </h1>
           <p className="text-gray-400 font-bold text-sm uppercase tracking-widest mt-1">
-            Cuisinier #{CUISINIER_ID} • Système de gestion de production
+            ????? {user?.prenom || user?.nom || 'Cuisinier'} • Système de gestion de production
           </p>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <button 
             onClick={loadData}
             className="p-3 bg-white rounded-xl hover:bg-gray-50 transition-all"
@@ -140,6 +142,14 @@ export const CuisinierViewConnected: React.FC = () => {
               Gestion Stock
             </button>
           </div>
+
+          <button 
+            onClick={logout}
+            className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl text-red-500 hover:bg-red-50 transition-all font-bold text-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            Déconnexion
+          </button>
         </div>
       </header>
 
