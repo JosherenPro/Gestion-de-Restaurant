@@ -27,8 +27,26 @@ class ApiService {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Une erreur est survenue' }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+      let errorMessage = `HTTP ${response.status}`;
+      
+      try {
+        const errorData = await response.json();
+        // Extract the most relevant error message
+        if (errorData.detail) {
+          errorMessage = typeof errorData.detail === 'string' 
+            ? errorData.detail 
+            : JSON.stringify(errorData.detail);
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use status text
+        errorMessage = response.statusText || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
     }
     
     const contentType = response.headers.get('content-type');
@@ -94,13 +112,16 @@ class ApiService {
 
   // Auth endpoints
   async login(username: string, password: string): Promise<{ access_token: string; token_type: string }> {
-    const formData = new FormData();
+    const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
     
     const response = await fetch(`${this.baseUrl}${API_CONFIG.ENDPOINTS.AUTH.TOKEN}`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
     });
     
     return this.handleResponse(response);
@@ -201,11 +222,23 @@ class ApiService {
     return this.get(API_CONFIG.ENDPOINTS.RESERVATIONS.BASE, { token });
   }
 
+  async getReservationById(id: number, token?: string): Promise<any> {
+    return this.get(API_CONFIG.ENDPOINTS.RESERVATIONS.BY_ID(id), { token });
+  }
+
   async checkDisponibilite(tableId: number, dateReservation: string, token?: string): Promise<any> {
     return this.get(
       `${API_CONFIG.ENDPOINTS.RESERVATIONS.DISPONIBILITE}?table_id=${tableId}&date_reservation=${dateReservation}`,
       { token }
     );
+  }
+
+  async confirmerReservation(id: number, token: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.RESERVATIONS.CONFIRMER(id), {}, { token });
+  }
+
+  async annulerReservation(id: number, token: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.RESERVATIONS.ANNULER(id), {}, { token });
   }
 
   // Avis endpoints
@@ -263,6 +296,35 @@ class ApiService {
 
   async registerCuisinier(data: any, token: string): Promise<any> {
     return this.post(API_CONFIG.ENDPOINTS.PERSONNEL.CUISINIERS, data, { token });
+  }
+
+  // Menus endpoints
+  async getMenus(token?: string): Promise<any[]> {
+    return this.get(API_CONFIG.ENDPOINTS.MENUS.BASE, { token });
+  }
+
+  async getMenuById(id: number, token?: string): Promise<any> {
+    return this.get(API_CONFIG.ENDPOINTS.MENUS.BY_ID(id), { token });
+  }
+
+  async createMenu(data: any, token: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.MENUS.BASE, data, { token });
+  }
+
+  async updateMenu(id: number, data: any, token: string): Promise<any> {
+    return this.put(API_CONFIG.ENDPOINTS.MENUS.BY_ID(id), data, { token });
+  }
+
+  async deleteMenu(id: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.MENUS.BY_ID(id), { token });
+  }
+
+  async addPlatToMenu(menuId: number, platId: number, token: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.MENUS.ADD_PLAT(menuId, platId), {}, { token });
+  }
+
+  async removePlatFromMenu(menuId: number, platId: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.MENUS.REMOVE_PLAT(menuId, platId), { token });
   }
 }
 

@@ -1,25 +1,25 @@
 
 import React, { useState } from 'react';
-import { INITIAL_ORDERS, MENU_ITEMS } from '../mockData';
-import { Order, OrderStatus, MenuItem } from '../types';
+import { INITIAL_ORDERS, MENU_ITEMS, OrderDisplay, MenuItemDisplay } from '../mockData';
+import { OrderStatus } from '../types';
 import { Badge, Button, Card } from './UI';
 import { ChefHat, Timer, Package, Play, Check, Ban, EyeOff, Eye, Box } from 'lucide-react';
 
 export const ChefView: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [menu, setMenu] = useState<MenuItem[]>(MENU_ITEMS);
+  const [orders, setOrders] = useState<OrderDisplay[]>(INITIAL_ORDERS);
+  const [menu, setMenu] = useState<MenuItemDisplay[]>(MENU_ITEMS);
   const [activeTab, setActiveTab] = useState<'COMMANDES' | 'STOCK'>('COMMANDES');
 
-  const updateStatus = (id: string, next: OrderStatus) => {
+  const updateStatus = (id: string | number, next: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: next } : o));
   };
 
-  const toggleAvailability = (id: string) => {
+  const toggleAvailability = (id: number) => {
     setMenu(prev => prev.map(item => item.id === id ? { ...item, isAvailable: !item.isAvailable } : item));
   };
 
-  const aPreparer = orders.filter(o => o.status === OrderStatus.A_PREPARER || o.status === OrderStatus.EN_ATTENTE_VALIDATION);
-  const enPreparation = orders.filter(o => o.status === OrderStatus.EN_PREPARATION);
+  const aPreparer = orders.filter(o => o.status === OrderStatus.VALIDEE || o.status === OrderStatus.EN_ATTENTE_VALIDATION);
+  const enPreparation = orders.filter(o => o.status === OrderStatus.EN_COURS);
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
@@ -81,7 +81,7 @@ export const ChefView: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                    <Button fullWidth onClick={() => updateStatus(order.id, OrderStatus.EN_PREPARATION)} variant="secondary" className="h-14 rounded-2xl shadow-xl shadow-gray-200">
+                    <Button fullWidth onClick={() => updateStatus(order.id, OrderStatus.EN_COURS)} variant="secondary" className="h-14 rounded-2xl shadow-xl shadow-gray-200">
                       <Play size={18} fill="currentColor" /> PRENDRE EN CHARGE
                     </Button>
                   </Card>
@@ -123,7 +123,7 @@ export const ChefView: React.FC = () => {
                       ))}
                     </div>
                     <div className="flex gap-3">
-                      <Button fullWidth onClick={() => updateStatus(order.id, OrderStatus.PRET_A_SERVIR)} variant="success" className="h-14 rounded-2xl shadow-lg shadow-green-900/20">
+                      <Button fullWidth onClick={() => updateStatus(order.id, OrderStatus.PRETE)} variant="success" className="h-14 rounded-2xl shadow-lg shadow-green-900/20">
                         <Check size={20} /> MARQUER COMME PRÊT
                       </Button>
                     </div>

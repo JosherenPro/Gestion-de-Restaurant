@@ -92,9 +92,9 @@ export interface Reservation {
   client_id: number;
   table_id: number;
   date_reservation: string;
-  nb_personnes: number;
+  nombre_personnes: number;
   statut: 'EN_ATTENTE' | 'CONFIRMEE' | 'ANNULEE';
-  commentaire?: string;
+  notes?: string;
 }
 
 export interface Avis {
@@ -118,5 +118,21 @@ export interface TopPlat {
   nom_plat: string;
   quantite_vendue: number;
   chiffre_affaires: number;
+}
+
+export interface Menu {
+  id: number;
+  nom: string;
+  prix_fixe: number;
+  actif: boolean;
+  contenus?: Array<{
+    menu_id: number;
+    plat_id: number;
+    plat?: MenuItem;
+  }>;
+}
+
+export interface MenuWithPlats extends Menu {
+  plats?: MenuItem[];
 }
 

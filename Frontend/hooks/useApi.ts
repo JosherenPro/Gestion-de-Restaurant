@@ -8,15 +8,14 @@ export const useMenu = () => {
   const [plats, setPlats] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
 
   useEffect(() => {
     const fetchMenu = async () => {
       try {
         setLoading(true);
         const [categoriesData, platsData] = await Promise.all([
-          apiService.getCategories(token || undefined),
-          apiService.getPlats(token || undefined),
+          apiService.getCategories(),
+          apiService.getPlats(),
         ]);
         setCategories(categoriesData);
         setPlats(platsData);
@@ -30,7 +29,7 @@ export const useMenu = () => {
     };
 
     fetchMenu();
-  }, [token]);
+  }, []);
 
   return { categories, plats, loading, error };
 };
@@ -155,4 +154,39 @@ export const useReservations = () => {
   };
 
   return { reservations, loading, error, refreshReservations };
+};
+
+export const useMenus = () => {
+  const [menus, setMenus] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMenus = async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getMenus();
+        setMenus(data);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || 'Erreur lors du chargement des menus');
+        console.error('Error fetching menus:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMenus();
+  }, []);
+
+  const refreshMenus = async () => {
+    try {
+      const data = await apiService.getMenus();
+      setMenus(data);
+    } catch (err: any) {
+      console.error('Error refreshing menus:', err);
+    }
+  };
+
+  return { menus, loading, error, refreshMenus };
 };

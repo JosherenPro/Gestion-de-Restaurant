@@ -31,21 +31,25 @@ export const Button: React.FC<{
 };
 
 export const Badge: React.FC<{ status: OrderStatus }> = ({ status }) => {
-  const styles = {
-    [OrderStatus.EN_ATTENTE_VALIDATION]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    [OrderStatus.A_PREPARER]: "bg-blue-100 text-blue-800 border-blue-200",
-    [OrderStatus.EN_PREPARATION]: "bg-orange-100 text-orange-800 border-orange-200",
-    [OrderStatus.PRET_A_SERVIR]: "bg-green-100 text-green-800 border-green-200",
-    [OrderStatus.LIVRE]: "bg-gray-100 text-gray-800 border-gray-200"
-  };
+const styles = {
+  [OrderStatus.EN_ATTENTE_VALIDATION]: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  [OrderStatus.VALIDEE]: "bg-blue-100 text-blue-800 border-blue-200",
+  [OrderStatus.EN_COURS]: "bg-orange-100 text-orange-800 border-orange-200",
+  [OrderStatus.PRETE]: "bg-green-100 text-green-800 border-green-200",
+  [OrderStatus.SERVIE]: "bg-gray-100 text-gray-800 border-gray-200",
+  [OrderStatus.PAYEE]: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  [OrderStatus.ANNULEE]: "bg-red-100 text-red-800 border-red-200"
+};
 
-  const labels = {
-    [OrderStatus.EN_ATTENTE_VALIDATION]: "À Valider",
-    [OrderStatus.A_PREPARER]: "À Préparer",
-    [OrderStatus.EN_PREPARATION]: "En Cuisine",
-    [OrderStatus.PRET_A_SERVIR]: "Prêt",
-    [OrderStatus.LIVRE]: "Servi"
-  };
+const labels = {
+  [OrderStatus.EN_ATTENTE_VALIDATION]: "À Valider",
+  [OrderStatus.VALIDEE]: "Validée",
+  [OrderStatus.EN_COURS]: "En Cuisine",
+  [OrderStatus.PRETE]: "Prêt",
+  [OrderStatus.SERVIE]: "Servi",
+  [OrderStatus.PAYEE]: "Payée",
+  [OrderStatus.ANNULEE]: "Annulée"
+};
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-bold border ${styles[status]}`}>

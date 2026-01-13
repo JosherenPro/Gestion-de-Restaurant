@@ -1,22 +1,21 @@
-
 import React, { useState } from 'react';
-import { MENU_ITEMS } from '../mockData';
-import { MenuItem, OrderItem, OrderStatus, Order } from '../types';
+import { MENU_ITEMS, MenuItemDisplay, OrderDisplay } from '../mockData';
+import { OrderStatus } from '../types';
 import { Button, Card, Badge, Modal } from './UI';
 import { ShoppingBasket, Search, Plus, Minus, CheckCircle, Clock, Calendar, Star, MessageSquare } from 'lucide-react';
 
 export const ClientView: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('Burgers');
-  const [basket, setBasket] = useState<OrderItem[]>([]);
+  const [basket, setBasket] = useState<Array<MenuItemDisplay & { quantity: number }>>([]);
   const [isBasketOpen, setIsBasketOpen] = useState(false);
   const [isReservationOpen, setIsReservationOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [currentOrder, setCurrentOrder] = useState<OrderDisplay | null>(null);
   const [step, setStep] = useState<'HOME' | 'MENU' | 'TRACKING'>('HOME');
 
   const categories = ['Offers', 'Burgers', 'Fries', 'Snacks', 'Salads', 'Cold drinks'];
 
-  const addToBasket = (item: MenuItem) => {
+  const addToBasket = (item: MenuItemDisplay) => {
     setBasket(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
@@ -26,7 +25,7 @@ export const ClientView: React.FC = () => {
     });
   };
 
-  const removeFromBasket = (id: string) => {
+  const removeFromBasket = (id: number) => {
     setBasket(prev => {
       const existing = prev.find(i => i.id === id);
       if (existing && existing.quantity > 1) {
@@ -39,10 +38,16 @@ export const ClientView: React.FC = () => {
   const total = basket.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const placeOrder = () => {
-    const newOrder: Order = {
+    const newOrder: OrderDisplay = {
       id: Math.random().toString(36).substr(2, 9),
       tableId: 't1',
-      items: [...basket],
+      items: basket.map(item => ({
+        id: item.id,
+        plat_id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price
+      })),
       status: OrderStatus.EN_ATTENTE_VALIDATION,
       timestamp: Date.now(),
       totalPrice: total
@@ -54,7 +59,9 @@ export const ClientView: React.FC = () => {
   };
 
   const filteredItems = MENU_ITEMS.filter(item => 
-    activeCategory === 'Offers' ? item.price < 20 : item.category.toLowerCase().includes(activeCategory.toLowerCase().slice(0, -1))
+    activeCategory === 'Offers' 
+    ? item.price < 20 
+    : (item.category || '').toLowerCase().includes(activeCategory.toLowerCase().slice(0, -1))
   );
 
   return (
@@ -169,9 +176,9 @@ export const ClientView: React.FC = () => {
               
               {[
                 { status: OrderStatus.EN_ATTENTE_VALIDATION, label: 'Validation reçue', active: true },
-                { status: OrderStatus.EN_PREPARATION, label: 'En cuisine', active: currentOrder.status !== OrderStatus.EN_ATTENTE_VALIDATION },
-                { status: OrderStatus.PRET_A_SERVIR, label: 'Plat prêt !', active: [OrderStatus.PRET_A_SERVIR, OrderStatus.LIVRE].includes(currentOrder.status) },
-                { status: OrderStatus.LIVRE, label: 'Bon appétit !', active: currentOrder.status === OrderStatus.LIVRE }
+                { status: OrderStatus.EN_COURS, label: 'En cuisine', active: currentOrder.status !== OrderStatus.EN_ATTENTE_VALIDATION },
+                { status: OrderStatus.PRETE, label: 'Plat prêt !', active: [OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.status) },
+                { status: OrderStatus.SERVIE, label: 'Bon appétit !', active: currentOrder.status === OrderStatus.SERVIE }
               ].map((s, idx) => (
                 <div key={idx} className="flex items-start gap-6 relative z-10">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 shadow-sm transition-all duration-500 ${s.active ? 'bg-[#FC8A06] border-[#FC8A06] text-white scale-110' : 'bg-white border-gray-200 text-gray-300'}`}>

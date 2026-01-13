@@ -1,26 +1,26 @@
 
 import React, { useState } from 'react';
-import { TABLES, INITIAL_ORDERS, MENU_ITEMS } from '../mockData';
-import { Table, Order, OrderStatus, MenuItem, OrderItem } from '../types';
+import { TABLES, INITIAL_ORDERS, MENU_ITEMS, MenuItemDisplay, OrderDisplay, TableDisplay } from '../mockData';
+import { OrderStatus, OrderItem } from '../types';
 import { Card, Button, Badge, Modal } from './UI';
 import { LayoutGrid, ClipboardList, UserPlus, CheckCircle2, Send, ChevronRight, X, Plus, Minus } from 'lucide-react';
 
 export const ServerView: React.FC = () => {
-  const [tables, setTables] = useState<Table[]>(TABLES);
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [tables, setTables] = useState<TableDisplay[]>(TABLES);
+  const [orders, setOrders] = useState<OrderDisplay[]>(INITIAL_ORDERS);
+  const [selectedTable, setSelectedTable] = useState<TableDisplay | null>(null);
   const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
-  const [manualBasket, setManualBasket] = useState<OrderItem[]>([]);
+  const [manualBasket, setManualBasket] = useState<Array<MenuItemDisplay & { quantity: number }>>([]);
 
-  const approveOrder = (id: string) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: OrderStatus.A_PREPARER } : o));
+  const approveOrder = (id: string | number) => {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: OrderStatus.VALIDEE } : o));
   };
 
-  const markServed = (id: string) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: OrderStatus.LIVRE } : o));
+  const markServed = (id: string | number) => {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: OrderStatus.SERVIE } : o));
   };
 
-  const addToManual = (item: MenuItem) => {
+  const addToManual = (item: MenuItemDisplay) => {
     setManualBasket(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
@@ -28,7 +28,7 @@ export const ServerView: React.FC = () => {
     });
   };
 
-  const removeFromManual = (id: string) => {
+  const removeFromManual = (id: number) => {
     setManualBasket(prev => {
       const existing = prev.find(i => i.id === id);
       if (existing && existing.quantity > 1) return prev.map(i => i.id === id ? { ...i, quantity: i.quantity - 1 } : i);
@@ -38,11 +38,17 @@ export const ServerView: React.FC = () => {
 
   const createManualOrder = () => {
     if (!selectedTable || manualBasket.length === 0) return;
-    const newOrder: Order = {
+    const newOrder: OrderDisplay = {
       id: `MAN-${Math.floor(Math.random() * 1000)}`,
-      tableId: selectedTable.id,
-      items: [...manualBasket],
-      status: OrderStatus.A_PREPARER,
+      tableId: `t${selectedTable.id}`,
+      items: manualBasket.map(item => ({ 
+        id: item.id, 
+        plat_id: item.id,
+        name: item.name, 
+        quantity: item.quantity, 
+        price: item.price 
+      })),
+      status: OrderStatus.VALIDEE,
       timestamp: Date.now(),
       totalPrice: manualBasket.reduce((a, b) => a + b.price * b.quantity, 0)
     };
@@ -141,7 +147,7 @@ export const ServerView: React.FC = () => {
                   {order.status === OrderStatus.EN_ATTENTE_VALIDATION && (
                     <Button fullWidth onClick={() => approveOrder(order.id)} variant="primary" className="h-12">Approver</Button>
                   )}
-                  {order.status === OrderStatus.PRET_A_SERVIR && (
+                  {order.status === OrderStatus.PRETE && (
                     <Button fullWidth onClick={() => markServed(order.id)} variant="success" className="h-12">Signaler comme servi</Button>
                   )}
                    <Button variant="outline" className="h-12 w-12 p-0"><ChevronRight /></Button>

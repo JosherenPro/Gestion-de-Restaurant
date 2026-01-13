@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   ENDPOINTS: {
     // Auth
     AUTH: {
@@ -46,6 +46,8 @@ export const API_CONFIG = {
       BASE: '/reservations',
       BY_ID: (id: number) => `/reservations/${id}`,
       DISPONIBILITE: '/reservations/disponibilite',
+      CONFIRMER: (id: number) => `/reservations/${id}/confirmer`,
+      ANNULER: (id: number) => `/reservations/${id}/annuler`,
     },
     // Avis
     AVIS: {
@@ -72,6 +74,13 @@ export const API_CONFIG = {
       GERANTS: '/personnel/register/gerants',
       SERVEURS: '/personnel/register/serveurs',
       CUISINIERS: '/personnel/register/cuisiniers',
+    },
+    // Menus
+    MENUS: {
+      BASE: '/menus',
+      BY_ID: (id: number) => `/menus/${id}`,
+      ADD_PLAT: (menuId: number, platId: number) => `/menus/${menuId}/plats/${platId}`,
+      REMOVE_PLAT: (menuId: number, platId: number) => `/menus/${menuId}/plats/${platId}`,
     },
   },
 };
