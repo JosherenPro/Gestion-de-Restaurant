@@ -35,24 +35,24 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
     try {
       console.log('?? Tentative de connexion avec:', loginEmail);
       const response = await apiService.login(loginEmail, loginPassword);
-      console.log('? Réponse login:', response);
+      console.log('? Rï¿½ponse login:', response);
       const token = response.access_token;
-      
+
       // Get user info
-      console.log('?? Récupération des infos utilisateur...');
+      console.log('?? Rï¿½cupï¿½ration des infos utilisateur...');
       const userData = await apiService.getCurrentUser(token);
-      console.log('? Données utilisateur:', userData);
-      
+      console.log('? Donnï¿½es utilisateur:', userData);
+
       // Store token
       localStorage.setItem('client_token', token);
-      
+
       onSuccess(token, userData);
       onClose();
     } catch (err: any) {
       console.error('? Erreur de connexion:', err);
       const errorMessage = err.message || 'Erreur de connexion';
       setError(errorMessage);
-      
+
       // Show more details in console
       if (err.response) {
         console.error('Response data:', await err.response.json().catch(() => null));
@@ -69,32 +69,39 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
 
     try {
       console.log('?? Tentative d\'inscription avec:', registerData);
-      
+
+      // Prepare data for API (map fields to match backend schema)
+      const apiData = {
+        ...registerData,
+        password: registerData.mot_de_passe,
+        role: 'CLIENT'
+      };
+
       // Register client
-      const registerResponse = await apiService.registerClient(registerData);
-      console.log('? Inscription réussie:', registerResponse);
-      
+      const registerResponse = await apiService.registerClient(apiData);
+      console.log('? Inscription rï¿½ussie:', registerResponse);
+
       // Auto-login after registration
-      console.log('?? Auto-connexion après inscription...');
+      console.log('?? Auto-connexion aprï¿½s inscription...');
       const response = await apiService.login(registerData.email, registerData.mot_de_passe);
-      console.log('? Réponse auto-login:', response);
+      console.log('? Rï¿½ponse auto-login:', response);
       const token = response.access_token;
-      
+
       // Get user info
-      console.log('?? Récupération des infos utilisateur...');
+      console.log('?? Rï¿½cupï¿½ration des infos utilisateur...');
       const userData = await apiService.getCurrentUser(token);
-      console.log('? Données utilisateur:', userData);
-      
+      console.log('? Donnï¿½es utilisateur:', userData);
+
       // Store token
       localStorage.setItem('client_token', token);
-      
+
       onSuccess(token, userData);
       onClose();
     } catch (err: any) {
       console.error('? Erreur d\'inscription:', err);
       const errorMessage = err.message || 'Erreur lors de l\'inscription';
       setError(errorMessage);
-      
+
       // Show more details in console
       if (err.response) {
         console.error('Response data:', await err.response.json().catch(() => null));
@@ -117,10 +124,10 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
                 {mode === 'login' ? 'Connexion' : 'Inscription'}
               </h2>
               <p className="text-sm text-gray-500 font-medium mt-1">
-                {mode === 'login' ? 'Accédez à votre compte' : 'Créez votre compte'}
+                {mode === 'login' ? 'AccÃ©dez Ã  votre compte' : 'CrÃ©ez votre compte'}
               </p>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all"
             >
@@ -139,22 +146,20 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
           <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-[1.2rem]">
             <button
               onClick={() => setMode('login')}
-              className={`flex-1 py-3 rounded-[1rem] font-bold text-sm transition-all ${
-                mode === 'login'
+              className={`flex-1 py-3 rounded-[1rem] font-bold text-sm transition-all ${mode === 'login'
                   ? 'bg-white text-[#FC8A06] shadow-md'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <LogIn className="w-4 h-4 inline mr-2" />
               Connexion
             </button>
             <button
               onClick={() => setMode('register')}
-              className={`flex-1 py-3 rounded-[1rem] font-bold text-sm transition-all ${
-                mode === 'register'
+              className={`flex-1 py-3 rounded-[1rem] font-bold text-sm transition-all ${mode === 'register'
                   ? 'bg-white text-[#FC8A06] shadow-md'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <UserPlus className="w-4 h-4 inline mr-2" />
               Inscription
@@ -192,7 +197,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
                     type="password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="********"
                     required
                     disabled={loading}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-[1.2rem] font-medium outline-none focus:border-[#FC8A06] focus:bg-white transition-all disabled:opacity-50"
@@ -226,7 +231,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">
-                    Prénom
+                    Prï¿½nom
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -234,7 +239,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
                       type="text"
                       value={registerData.prenom}
                       onChange={(e) => setRegisterData({ ...registerData, prenom: e.target.value })}
-                      placeholder="Jean"
+                      placeholder="Eren"
                       required
                       disabled={loading}
                       className="w-full pl-10 pr-3 py-3 bg-gray-50 border-2 border-gray-100 rounded-[1rem] text-sm font-medium outline-none focus:border-[#FC8A06] focus:bg-white transition-all disabled:opacity-50"
@@ -252,7 +257,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
                       type="text"
                       value={registerData.nom}
                       onChange={(e) => setRegisterData({ ...registerData, nom: e.target.value })}
-                      placeholder="Dupont"
+                      placeholder="Josh"
                       required
                       disabled={loading}
                       className="w-full pl-10 pr-3 py-3 bg-gray-50 border-2 border-gray-100 rounded-[1rem] text-sm font-medium outline-none focus:border-[#FC8A06] focus:bg-white transition-all disabled:opacity-50"
@@ -281,7 +286,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
 
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">
-                  Téléphone
+                  Telephone
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -289,7 +294,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
                     type="tel"
                     value={registerData.telephone}
                     onChange={(e) => setRegisterData({ ...registerData, telephone: e.target.value })}
-                    placeholder="+33 6 12 34 56 78"
+                    placeholder="+228 99 99 99 99"
                     required
                     disabled={loading}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-[1.2rem] font-medium outline-none focus:border-[#FC8A06] focus:bg-white transition-all disabled:opacity-50"
@@ -307,14 +312,14 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
                     type="password"
                     value={registerData.mot_de_passe}
                     onChange={(e) => setRegisterData({ ...registerData, mot_de_passe: e.target.value })}
-                    placeholder="••••••••"
+                    placeholder="********"
                     required
                     minLength={6}
                     disabled={loading}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-[1.2rem] font-medium outline-none focus:border-[#FC8A06] focus:bg-white transition-all disabled:opacity-50"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-2">Minimum 6 caractères</p>
+                <p className="text-xs text-gray-400 mt-2">Minimum 6 caractÃ¨res</p>
               </div>
 
               <button
@@ -330,7 +335,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5 inline mr-2" />
-                    Créer mon compte
+                    CrÃ©er mon compte
                   </>
                 )}
               </button>
