@@ -21,18 +21,18 @@ export const API_CONFIG = {
     },
     // Categories
     CATEGORIES: {
-      BASE: '/categories',
+      BASE: '/categories/',
       BY_ID: (id: number) => `/categories/${id}`,
     },
     // Plats
     PLATS: {
-      BASE: '/plats',
+      BASE: '/plats/',
       BY_ID: (id: number) => `/plats/${id}`,
       IMAGE: (id: number) => `/plats/${id}/image`,
     },
     // Commandes
     COMMANDES: {
-      BASE: '/commandes',
+      BASE: '/commandes/',
       BY_ID: (id: number) => `/commandes/${id}`,
       LIGNES: (id: number) => `/commandes/${id}/lignes`,
       VALIDER: (id: number) => `/commandes/${id}/valider`,
@@ -44,7 +44,7 @@ export const API_CONFIG = {
     },
     // Tables
     TABLES: {
-      BASE: '/tables',
+      BASE: '/tables/',
       BY_ID: (id: number) => `/tables/${id}`,
       BY_QR: (qrCode: string) => `/tables/qr/${qrCode}`,
       OCCUPER: (id: number) => `/tables/${id}/occuper`,

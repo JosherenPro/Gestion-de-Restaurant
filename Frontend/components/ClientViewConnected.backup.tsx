@@ -72,7 +72,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
   const placeOrder = async () => {
     try {
       setOrderError(null);
-      console.log('?? Création de la commande...');
+      console.log('?? Crï¿½ation de la commande...');
       
       // Create the order without auth
       const orderData = {
@@ -84,7 +84,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
       };
       
       const newOrder = await apiService.createCommande(orderData);
-      console.log('? Commande créée:', newOrder);
+      console.log('? Commande crï¿½ï¿½e:', newOrder);
       
       // Add each item as a line
       for (const item of basket) {
@@ -97,14 +97,14 @@ const [orderError, setOrderError] = useState<string | null>(null);
         });
       }
       
-      console.log('? Commande envoyée aux cuisiniers!');
+      console.log('? Commande envoyï¿½e aux cuisiniers!');
       setCurrentOrder(newOrder);
       setBasket([]);
       setIsBasketOpen(false);
       setStep('TRACKING');
     } catch (error: any) {
       console.error('? Erreur commande:', error);
-      setOrderError(error.message || 'Erreur lors de la création de la commande');
+      setOrderError(error.message || 'Erreur lors de la crï¿½ation de la commande');
     }
   };
 
@@ -115,11 +115,11 @@ const [orderError, setOrderError] = useState<string | null>(null);
       setReservationSuccess(false);
       
       if (!reservationData.dateReservation) {
-        setReservationError('Veuillez sélectionner une date et une heure');
+        setReservationError('Veuillez sï¿½lectionner une date et une heure');
         return;
       }
 
-      console.log('?? Création de la réservation...');
+      console.log('?? Crï¿½ation de la rï¿½servation...');
       
       // Convert local datetime to ISO format for API
       const reservationDateTime = new Date(reservationData.dateReservation).toISOString();
@@ -133,7 +133,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
       };
       
       await apiService.createReservation(reservationPayload);
-      console.log('? Réservation créée avec succès!');
+      console.log('? Rï¿½servation crï¿½ï¿½e avec succï¿½s!');
       
       setReservationSuccess(true);
       
@@ -148,9 +148,9 @@ const [orderError, setOrderError] = useState<string | null>(null);
         setIsReservationOpen(false);
       }, 2000);
     } catch (error: any) {
-      console.error('? Erreur réservation:', error);
+      console.error('? Erreur rï¿½servation:', error);
       // Better error message extraction
-      let errorMessage = 'Erreur lors de la création de la réservation';
+      let errorMessage = 'Erreur lors de la crï¿½ation de la rï¿½servation';
       
       if (error.message) {
         errorMessage = error.message;
@@ -202,7 +202,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
             </div>
             <div className="flex flex-col items-start">
               <span className="font-black text-lg tracking-tight text-[#03081F]">RestoDeluxe</span>
-              <span className="text-[9px] font-bold text-[#FC8A06] uppercase tracking-widest">Expérience Premium</span>
+              <span className="text-[9px] font-bold text-[#FC8A06] uppercase tracking-widest">Expï¿½rience Premium</span>
             </div>
           </button>
           
@@ -244,7 +244,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 </h1>
                 <p className="text-white/80 text-sm font-medium flex items-center gap-2">
                   <Award className="w-4 h-4" />
-                  Cuisine gastronomique • Service premium
+                  Cuisine gastronomique ï¿½ Service premium
                 </p>
               </div>
             </div>
@@ -316,8 +316,8 @@ const [orderError, setOrderError] = useState<string | null>(null);
                       <UtensilsCrossed className="w-7 h-7 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-lg tracking-tight">Découvrir les Menus</p>
-                      <p className="text-xs text-white/80 font-medium">Formules complètes à prix fixe</p>
+                      <p className="font-black text-lg tracking-tight">Dï¿½couvrir les Menus</p>
+                      <p className="text-xs text-white/80 font-medium">Formules complï¿½tes ï¿½ prix fixe</p>
                     </div>
                   </div>
                   <Plus className="w-6 h-6 text-white" />
@@ -330,7 +330,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                   className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
                 >
                   <Calendar className="w-6 h-6 text-[#FC8A06] mb-2" />
-                  <p className="font-bold text-sm text-[#03081F]">Réserver</p>
+                  <p className="font-bold text-sm text-[#03081F]">Rï¿½server</p>
                   <p className="text-[10px] text-gray-400 font-medium">Une table</p>
                 </button>
                 
@@ -340,7 +340,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 >
                   <MessageSquare className="w-6 h-6 text-purple-500 mb-2" />
                   <p className="font-bold text-sm text-[#03081F]">Avis</p>
-                  <p className="text-[10px] text-gray-400 font-medium">Votre expérience</p>
+                  <p className="text-[10px] text-gray-400 font-medium">Votre expï¿½rience</p>
                 </button>
               </div>
             </div>
@@ -349,7 +349,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
             <Card className="p-5 bg-gradient-to-br from-gray-50 to-white border-none shadow-sm">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Pourquoi nous choisir</p>
               <div className="space-y-2">
-                {['Ingrédients frais & locaux', 'Service impeccable', 'Ambiance chaleureuse'].map((item, i) => (
+                {['Ingrï¿½dients frais & locaux', 'Service impeccable', 'Ambiance chaleureuse'].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                     <span className="text-sm text-gray-700 font-medium">{item}</span>
@@ -374,7 +374,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                       : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
                   }`}
                 >
-                  ? Tous les plats
+                  Tous les plats
                 </button>
                 {categories.map(cat => (
                   <button
@@ -398,7 +398,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-[#FC8A06] transition-colors" />
                 <input 
                   type="text" 
-                  placeholder="Rechercher un délice..." 
+                  placeholder="Rechercher un dï¿½lice..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-white border-2 border-gray-100 rounded-[1.5rem] py-4 pl-14 pr-4 shadow-lg focus:border-[#FC8A06] focus:shadow-xl outline-none font-medium transition-all" 
@@ -413,7 +413,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                   <div className="w-20 h-20 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
                     <Search className="w-10 h-10 text-gray-300" />
                   </div>
-                  <p className="text-gray-400 font-medium">Aucun plat trouvé</p>
+                  <p className="text-gray-400 font-medium">Aucun plat trouvï¿½</p>
                 </div>
               ) : (
                 filteredPlats.map((plat, index) => (
@@ -450,13 +450,13 @@ const [orderError, setOrderError] = useState<string | null>(null);
                             <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 hover:fill-red-500 transition-all cursor-pointer flex-shrink-0" />
                           </div>
                           <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
-                            {plat.description || 'Un délicieux plat préparé avec soin par nos chefs'}
+                            {plat.description || 'Un dï¿½licieux plat prï¿½parï¿½ avec soin par nos chefs'}
                           </p>
                         </div>
                         
                         <div className="flex items-center justify-between">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-black text-[#FC8A06]">€{formatPrice(plat.prix)}</span>
+                            <span className="text-2xl font-black text-[#FC8A06]">ï¿½{formatPrice(plat.prix)}</span>
                           </div>
                           <div className="flex items-center gap-1 text-yellow-400">
                             <Star className="w-3 h-3 fill-current" />
@@ -480,10 +480,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 onClick={() => setStep('HOME')}
                 className="text-gray-500 hover:text-[#FC8A06] font-medium text-sm flex items-center gap-2 mb-4"
               >
-                ? Retour à l'accueil
+                ? Retour ï¿½ l'accueil
               </button>
               <h2 className="text-3xl font-black text-[#03081F] mb-2">Nos Menus</h2>
-              <p className="text-gray-500">Découvrez nos formules complètes à prix fixe</p>
+              <p className="text-gray-500">Dï¿½couvrez nos formules complï¿½tes ï¿½ prix fixe</p>
             </div>
 
             {menusLoading ? (
@@ -519,14 +519,14 @@ const [orderError, setOrderError] = useState<string | null>(null);
                               </h3>
                               <div className="flex items-center gap-2 mt-1">
                                 <Award className="w-4 h-4 text-yellow-400" />
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Formule complète</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Formule complï¿½te</span>
                               </div>
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-purple-600">€{formatPrice(menu.prix_fixe)}</span>
+                            <span className="text-3xl font-black text-purple-600">ï¿½{formatPrice(menu.prix_fixe)}</span>
                           </div>
                           <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix fixe</span>
                         </div>
@@ -551,7 +551,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                             )}
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-500 italic">Menu personnalisable avec notre sélection</p>
+                          <p className="text-sm text-gray-500 italic">Menu personnalisable avec notre sï¿½lection</p>
                         )}
                       </div>
 
@@ -595,7 +595,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                           </div>
                         </div>
                         <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider bg-green-50 px-3 py-1 rounded-full">
-                          Économisez €{formatPrice(menu.contenus ? menu.contenus.reduce((acc: number, c: any) => {
+                          ï¿½conomisez ï¿½{formatPrice(menu.contenus ? menu.contenus.reduce((acc: number, c: any) => {
                             const plat = plats.find(p => p.id === c.plat_id);
                             return acc + (plat?.prix || 0);
                           }, 0) - menu.prix_fixe : 0)}
@@ -624,7 +624,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
               </div>
 
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-black text-[#03081F] mb-2">Commande Confirmée !</h2>
+                <h2 className="text-2xl font-black text-[#03081F] mb-2">Commande Confirmï¿½e !</h2>
                 <p className="text-sm text-gray-500 font-medium">Commande #{currentOrder.id}</p>
               </div>
 
@@ -638,28 +638,28 @@ const [orderError, setOrderError] = useState<string | null>(null);
                     { 
                       status: OrderStatus.EN_ATTENTE_VALIDATION, 
                       label: 'En attente', 
-                      sublabel: 'Commande reçue',
+                      sublabel: 'Commande reï¿½ue',
                       icon: Clock,
                       active: currentOrder.statut === OrderStatus.EN_ATTENTE_VALIDATION 
                     },
                     { 
                       status: OrderStatus.VALIDEE, 
-                      label: 'Validée', 
-                      sublabel: 'Par notre équipe',
+                      label: 'Validï¿½e', 
+                      sublabel: 'Par notre ï¿½quipe',
                       icon: CheckCircle,
                       active: [OrderStatus.VALIDEE, OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
                     },
                     { 
                       status: OrderStatus.EN_COURS, 
-                      label: 'En préparation', 
+                      label: 'En prï¿½paration', 
                       sublabel: 'Nos chefs au travail',
                       icon: ChefHat,
                       active: [OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
                     },
                     { 
                       status: OrderStatus.PRETE, 
-                      label: 'Prêt !', 
-                      sublabel: 'Bonne dégustation',
+                      label: 'Prï¿½t !', 
+                      sublabel: 'Bonne dï¿½gustation',
                       icon: Sparkles,
                       active: [OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
                     },
@@ -700,8 +700,8 @@ const [orderError, setOrderError] = useState<string | null>(null);
               <div className="pt-6 border-t-2 border-dashed border-gray-200 space-y-4">
                 <div className="bg-white rounded-[1.5rem] p-5 shadow-lg">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total à régler</span>
-                    <span className="text-3xl font-black text-[#FC8A06]">€{formatPrice(currentOrder.montant_total)}</span>
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total ï¿½ rï¿½gler</span>
+                    <span className="text-3xl font-black text-[#FC8A06]">ï¿½{formatPrice(currentOrder.montant_total)}</span>
                   </div>
                 </div>
 
@@ -709,7 +709,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                   onClick={() => setStep('HOME')}
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold"
                 >
-                  Retour à l'accueil
+                  Retour ï¿½ l'accueil
                 </button>
               </div>
             </Card>
@@ -766,7 +766,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                       {/* Item Info */}
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-[#03081F] truncate">{item.plat?.nom}</p>
-                        <p className="text-xs text-gray-500 font-medium">€{formatPrice(item.prix_unitaire)} × {item.quantite}</p>
+                        <p className="text-xs text-gray-500 font-medium">ï¿½{formatPrice(item.prix_unitaire)} ï¿½ {item.quantite}</p>
                       </div>
 
                       {/* Controls */}
@@ -788,7 +788,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                       {/* Item Total */}
                       <div className="text-right flex-shrink-0">
                         <p className="font-black text-[#FC8A06] text-lg">
-                          €{formatPrice(item.prix_unitaire * item.quantite)}
+                          ï¿½{formatPrice(item.prix_unitaire * item.quantite)}
                         </p>
                       </div>
                     </div>
@@ -801,7 +801,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-[1.5rem] p-6 shadow-inner">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">Total</span>
-                    <span className="text-4xl font-black text-[#FC8A06]">€{formatPrice(totalInCentimes)}</span>
+                    <span className="text-4xl font-black text-[#FC8A06]">ï¿½{formatPrice(totalInCentimes)}</span>
                   </div>
                   <p className="text-xs text-gray-500 font-medium text-right">Taxes et service inclus</p>
                 </div>
@@ -823,7 +823,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
         <div>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-black text-[#03081F]">Réservation</h2>
+              <h2 className="text-2xl font-black text-[#03081F]">Rï¿½servation</h2>
               <p className="text-sm text-gray-500 font-medium">Garantissez votre table</p>
             </div>
             <button 
@@ -839,8 +839,8 @@ const [orderError, setOrderError] = useState<string | null>(null);
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="text-xl font-black text-[#03081F] mb-2">Réservation envoyée !</h3>
-              <p className="text-gray-500 font-medium">Le gérant va examiner votre demande</p>
+              <h3 className="text-xl font-black text-[#03081F] mb-2">Rï¿½servation envoyï¿½e !</h3>
+              <p className="text-gray-500 font-medium">Le gï¿½rant va examiner votre demande</p>
             </div>
           ) : (
             <form className="space-y-5" onSubmit={createReservation}>
@@ -890,7 +890,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 <textarea 
                   value={reservationData.commentaire}
                   onChange={(e) => setReservationData(prev => ({ ...prev, commentaire: e.target.value }))}
-                  placeholder="Allergie, demande spéciale..."
+                  placeholder="Allergie, demande spï¿½ciale..."
                   className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.2rem] h-24 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all"
                 />
               </div>
@@ -900,7 +900,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 type="submit"
                 className="w-full bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold mt-6"
               >
-                Confirmer ma réservation
+                Confirmer ma rï¿½servation
               </button>
             </form>
           )}
@@ -913,7 +913,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-black text-[#03081F]">Votre Avis</h2>
-              <p className="text-sm text-gray-500 font-medium">Partagez votre expérience</p>
+              <p className="text-sm text-gray-500 font-medium">Partagez votre expï¿½rience</p>
             </div>
             <button 
               onClick={() => setIsReviewOpen(false)}
@@ -925,7 +925,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
 
           <div className="space-y-6">
             <div className="text-center">
-              <p className="text-gray-600 mb-5 font-medium">Comment s'est passée votre visite ?</p>
+              <p className="text-gray-600 mb-5 font-medium">Comment s'est passï¿½e votre visite ?</p>
               <div className="flex justify-center gap-2">
                 {[1, 2, 3, 4, 5].map(star => (
                   <button 
@@ -941,7 +941,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Votre commentaire</label>
               <textarea 
-                placeholder="Partagez votre expérience avec nous..." 
+                placeholder="Partagez votre expï¿½rience avec nous..." 
                 className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.5rem] h-32 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all" 
               />
             </div>
@@ -976,7 +976,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                   </div>
                   <div className="text-left">
                     <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Mon panier</p>
-                    <p className="font-black text-white text-lg">€{formatPrice(totalInCentimes)}</p>
+                    <p className="font-black text-white text-lg">ï¿½{formatPrice(totalInCentimes)}</p>
                   </div>
                 </div>
                 <div className="bg-[#FC8A06] px-5 py-2 rounded-[1rem] shadow-lg">
