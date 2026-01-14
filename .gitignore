@@ -1,4 +1,9 @@
-# éviter d'inclure les fichiers de projet de visual studio
+# vider d'inclure les fichiers de projet de visual studio
 .vs
-.env
-.env.local
+*.env
+*.env.local
+*.vscode
+*.venv
+*.env
+
+

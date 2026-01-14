@@ -5,6 +5,7 @@ from app.models.paiement import Paiement, PaymentStatus
 from app.models.avis import Avis
 from app.models.plat import Plat
 from app.models.ligne_commande import LigneCommande
+from app.models.client import Client
 from app.schemas.stats import GlobalStats, DishPopularity, RevenueByPeriod
 
 def get_global_stats(session: Session) -> GlobalStats:
@@ -18,9 +19,13 @@ def get_global_stats(session: Session) -> GlobalStats:
     # Note moyenne des avis
     moyenne_avis = session.exec(select(func.avg(Avis.note))).one() or 0.0
     
+    # Nombre de clients
+    nb_clients = session.exec(select(func.count(Client.id))).one() or 0
+    
     return GlobalStats(
         chiffre_affaires_total=ca_total,
         nombre_commandes=nb_commandes,
+        nombre_clients=nb_clients,
         note_moyenne=round(moyenne_avis, 2)
     )
 

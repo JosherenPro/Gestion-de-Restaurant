@@ -4,6 +4,7 @@ from typing import List
 class GlobalStats(BaseModel):
     chiffre_affaires_total: float
     nombre_commandes: int
+    nombre_clients: int
     note_moyenne: float | None = 0.0
 
 class DishPopularity(BaseModel):

@@ -17,15 +17,14 @@ from app.schemas.categorie import (
     CategorieUpdate
 )
 
-from app.security.rbac import allow_gerant
+from app.security.rbac import allow_gerant, allow_staff
 
 router = APIRouter(
     prefix="/categories",
-    tags=["Catégories"],
-    dependencies=[Depends(allow_gerant)]
+    tags=["Catégories"]
 )
 
-@router.post("/", response_model=CategorieRead)
+@router.post("/", response_model=CategorieRead, dependencies=[Depends(allow_gerant)])
 async def create_categorie_endpoint(
     session: Session = Depends(get_session),
     categorie_in: CategorieCreate = Body(...)
@@ -51,7 +50,7 @@ async def list_categories_endpoint(
     """Lister toutes les catégories."""
     return list_categories(session)
 
-@router.put("/{categorie_id}", response_model=CategorieRead)
+@router.put("/{categorie_id}", response_model=CategorieRead, dependencies=[Depends(allow_gerant)])
 async def update_categorie_endpoint(
     session: Session = Depends(get_session),
     categorie_id: int = Path(...),
@@ -63,7 +62,7 @@ async def update_categorie_endpoint(
         raise HTTPException(status_code=404, detail="Catégorie non trouvée")
     return categorie
 
-@router.delete("/{categorie_id}", response_model=CategorieRead)
+@router.delete("/{categorie_id}", response_model=CategorieRead, dependencies=[Depends(allow_gerant)])
 async def delete_categorie_endpoint(
     session: Session = Depends(get_session),
     categorie_id: int = Path(...)
