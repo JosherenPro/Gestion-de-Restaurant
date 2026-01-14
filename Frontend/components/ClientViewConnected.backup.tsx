@@ -1,0 +1,992 @@
+import React, { useState, useEffect } from 'react';
+import { MenuItem, OrderItem, OrderStatus, Order, Categorie, TypeCommande, Menu } from '../types';
+import { Button, Card, Modal } from './UI';
+import { ShoppingBasket, Search, Plus, Minus, CheckCircle, Calendar, Star, MessageSquare, Loader, Sparkles, ChefHat, Clock, Award, TrendingUp, Heart, X, UtensilsCrossed } from 'lucide-react';
+import { useMenu, useMenus } from '../hooks/useApi';
+import { apiService } from '../services/api.service';
+import { formatPrice } from '../mockData';
+
+export const ClientView: React.FC = () => {
+const { categories, plats, loading } = useMenu();
+const { menus, loading: menusLoading } = useMenus();
+const [activeCategory, setActiveCategory] = useState<number | 'ALL'>('ALL');
+const [basket, setBasket] = useState<OrderItem[]>([]);
+const [isBasketOpen, setIsBasketOpen] = useState(false);
+const [isReservationOpen, setIsReservationOpen] = useState(false);
+const [isReviewOpen, setIsReviewOpen] = useState(false);
+const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+const [step, setStep] = useState<'HOME' | 'MENU' | 'MENUS_LIST' | 'TRACKING'>('HOME');
+const [searchTerm, setSearchTerm] = useState('');
+const [orderError, setOrderError] = useState<string | null>(null);
+
+  // Reservation state
+  const [reservationData, setReservationData] = useState({
+    nbPersonnes: 2,
+    dateReservation: '',
+    commentaire: ''
+  });
+  const [reservationError, setReservationError] = useState<string | null>(null);
+  const [reservationSuccess, setReservationSuccess] = useState(false);
+
+  // Simple guest mode - no auth required
+  const CLIENT_ID = 1;
+  const TABLE_ID = 1;
+
+  const addToBasket = (item: MenuItem) => {
+    setBasket(prev => {
+      const existing = prev.find(i => i.plat_id === item.id);
+      if (existing) {
+        return prev.map(i => 
+          i.plat_id === item.id 
+            ? { ...i, quantite: i.quantite + 1 } 
+            : i
+        );
+      }
+      return [...prev, {
+        plat_id: item.id,
+        plat: item,
+        quantite: 1,
+        prix_unitaire: item.prix
+      }];
+    });
+  };
+
+  const removeFromBasket = (platId: number) => {
+    setBasket(prev => {
+      const existing = prev.find(i => i.plat_id === platId);
+      if (existing && existing.quantite > 1) {
+        return prev.map(i => 
+          i.plat_id === platId 
+            ? { ...i, quantite: i.quantite - 1 } 
+            : i
+        );
+      }
+      return prev.filter(i => i.plat_id !== platId);
+    });
+  };
+
+  const totalInCentimes = basket.reduce((acc, item) => 
+    acc + (item.prix_unitaire * item.quantite), 0
+  );
+
+  const placeOrder = async () => {
+    try {
+      setOrderError(null);
+      console.log('?? Création de la commande...');
+      
+      // Create the order without auth
+      const orderData = {
+        client_id: CLIENT_ID,
+        table_id: TABLE_ID,
+        type_commande: TypeCommande.SUR_PLACE,
+        montant_total: totalInCentimes,
+        notes: 'Commande client sans authentification'
+      };
+      
+      const newOrder = await apiService.createCommande(orderData);
+      console.log('? Commande créée:', newOrder);
+      
+      // Add each item as a line
+      for (const item of basket) {
+        await apiService.addLigneCommande(newOrder.id, {
+          commande_id: newOrder.id,
+          plat_id: item.plat_id,
+          quantite: item.quantite,
+          prix_unitaire: item.prix_unitaire,
+          notes_speciales: item.notes_speciales || ''
+        });
+      }
+      
+      console.log('? Commande envoyée aux cuisiniers!');
+      setCurrentOrder(newOrder);
+      setBasket([]);
+      setIsBasketOpen(false);
+      setStep('TRACKING');
+    } catch (error: any) {
+      console.error('? Erreur commande:', error);
+      setOrderError(error.message || 'Erreur lors de la création de la commande');
+    }
+  };
+
+  const createReservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setReservationError(null);
+      setReservationSuccess(false);
+      
+      if (!reservationData.dateReservation) {
+        setReservationError('Veuillez sélectionner une date et une heure');
+        return;
+      }
+
+      console.log('?? Création de la réservation...');
+      
+      // Convert local datetime to ISO format for API
+      const reservationDateTime = new Date(reservationData.dateReservation).toISOString();
+      
+      const reservationPayload = {
+        client_id: CLIENT_ID,
+        table_id: TABLE_ID,
+        date_reservation: reservationDateTime,
+        nombre_personnes: reservationData.nbPersonnes,
+        notes: reservationData.commentaire || undefined
+      };
+      
+      await apiService.createReservation(reservationPayload);
+      console.log('? Réservation créée avec succès!');
+      
+      setReservationSuccess(true);
+      
+      // Reset form after 2 seconds and close modal
+      setTimeout(() => {
+        setReservationData({
+          nbPersonnes: 2,
+          dateReservation: '',
+          commentaire: ''
+        });
+        setReservationSuccess(false);
+        setIsReservationOpen(false);
+      }, 2000);
+    } catch (error: any) {
+      console.error('? Erreur réservation:', error);
+      // Better error message extraction
+      let errorMessage = 'Erreur lors de la création de la réservation';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error.detail) {
+        errorMessage = error.detail;
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      setReservationError(errorMessage);
+    }
+  };
+
+  const filteredPlats = plats.filter(plat => {
+    const matchesCategory = activeCategory === 'ALL' || plat.categorie_id === activeCategory;
+    const matchesSearch = plat.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (plat.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    return matchesCategory && matchesSearch && plat.disponible;
+  });
+
+  const getImageUrl = (imageUrl?: string) => {
+    if (imageUrl) {
+      return imageUrl.startsWith('http') ? imageUrl : `https://gestion-de-restaurant.onrender.com${imageUrl}`;
+    }
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&h=300';
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin text-[#FC8A06] mx-auto" />
+          <p className="mt-4 text-gray-500">Chargement du menu...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
+      {/* FLOATING HEADER - Premium & Glassmorphism */}
+      <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
+        <div className="max-w-md mx-auto bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/60 p-4 flex items-center justify-between">
+          <button onClick={() => setStep('HOME')} className="flex items-center gap-3 group">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#FC8A06] to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
+              <ChefHat className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="font-black text-lg tracking-tight text-[#03081F]">RestoDeluxe</span>
+              <span className="text-[9px] font-bold text-[#FC8A06] uppercase tracking-widest">Expérience Premium</span>
+            </div>
+          </button>
+          
+          {step === 'MENU' && (
+            <button 
+              onClick={() => setIsBasketOpen(true)} 
+              className="relative p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg shadow-green-500/30 hover:scale-110 transition-all active:scale-95"
+            >
+              <ShoppingBasket className="w-6 h-6 text-white" />
+              {basket.length > 0 && (
+                <div className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                  <span className="text-white text-xs font-black">{basket.reduce((a, b) => a + b.quantite, 0)}</span>
+                </div>
+              )}
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="max-w-md mx-auto pt-24 pb-32">
+        {/* HOME SCREEN - Hero Section */}
+        {step === 'HOME' && (
+          <div className="px-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Hero Banner with Parallax Effect */}
+            <div className="relative h-72 rounded-[2.5rem] overflow-hidden shadow-2xl group">
+              <img 
+                src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80" 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                alt="Restaurant" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+              <div className="absolute bottom-8 left-8 right-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                  <span className="text-white/90 text-sm font-bold uppercase tracking-widest">Ouvert Maintenant</span>
+                </div>
+                <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
+                  Bienvenue chez<br />RestoDeluxe
+                </h1>
+                <p className="text-white/80 text-sm font-medium flex items-center gap-2">
+                  <Award className="w-4 h-4" />
+                  Cuisine gastronomique • Service premium
+                </p>
+              </div>
+            </div>
+
+            {/* Food Gallery Carousel */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=400&q=80'
+              ].map((img, i) => (
+                <div key={i} className="relative h-32 rounded-[1.5rem] overflow-hidden shadow-lg group cursor-pointer">
+                  <img 
+                    src={img} 
+                    className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700" 
+                    alt={`Food ${i + 1}`} 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { icon: Star, label: '4.9/5', sublabel: 'Avis', color: 'from-yellow-400 to-orange-500' },
+                { icon: Clock, label: '20 min', sublabel: 'Temps moy.', color: 'from-blue-400 to-cyan-500' },
+                { icon: TrendingUp, label: 'Top 3', sublabel: 'Restaurants', color: 'from-purple-400 to-pink-500' }
+              ].map((stat, i) => (
+                <Card key={i} className="p-4 bg-white border-none shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center mb-3 shadow-md`}>
+                    <stat.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <p className="font-black text-xl text-[#03081F]">{stat.label}</p>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{stat.sublabel}</p>
+                </Card>
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={() => setStep('MENU')}
+                className="w-full bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-[1.5rem] p-6 shadow-2xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-1 active:scale-95 group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                      <Sparkles className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-black text-lg tracking-tight">Commander des Plats</p>
+                      <p className="text-xs text-white/80 font-medium">Parcourir notre carte</p>
+                    </div>
+                  </div>
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => setStep('MENUS_LIST')}
+                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-[1.5rem] p-6 shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-95 group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                      <UtensilsCrossed className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-black text-lg tracking-tight">Découvrir les Menus</p>
+                      <p className="text-xs text-white/80 font-medium">Formules complètes à prix fixe</p>
+                    </div>
+                  </div>
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+              </button>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setIsReservationOpen(true)}
+                  className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+                >
+                  <Calendar className="w-6 h-6 text-[#FC8A06] mb-2" />
+                  <p className="font-bold text-sm text-[#03081F]">Réserver</p>
+                  <p className="text-[10px] text-gray-400 font-medium">Une table</p>
+                </button>
+                
+                <button
+                  onClick={() => setIsReviewOpen(true)}
+                  className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+                >
+                  <MessageSquare className="w-6 h-6 text-purple-500 mb-2" />
+                  <p className="font-bold text-sm text-[#03081F]">Avis</p>
+                  <p className="text-[10px] text-gray-400 font-medium">Votre expérience</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Trust Badges */}
+            <Card className="p-5 bg-gradient-to-br from-gray-50 to-white border-none shadow-sm">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Pourquoi nous choisir</p>
+              <div className="space-y-2">
+                {['Ingrédients frais & locaux', 'Service impeccable', 'Ambiance chaleureuse'].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 font-medium">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* MENU SCREEN - Enhanced Design */}
+        {step === 'MENU' && (
+          <div className="space-y-6">
+            {/* Category Chips - Horizontal Scroll */}
+            <div className="px-4 overflow-x-auto no-scrollbar">
+              <div className="flex gap-3 pb-2">
+                <button
+                  onClick={() => setActiveCategory('ALL')}
+                  className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${
+                    activeCategory === 'ALL' 
+                      ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105' 
+                      : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  ? Tous les plats
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${
+                      activeCategory === cat.id 
+                        ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105' 
+                        : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
+                    }`}
+                  >
+                    {cat.nom}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Bar - Enhanced */}
+            <div className="px-4">
+              <div className="relative group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-[#FC8A06] transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="Rechercher un délice..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-white border-2 border-gray-100 rounded-[1.5rem] py-4 pl-14 pr-4 shadow-lg focus:border-[#FC8A06] focus:shadow-xl outline-none font-medium transition-all" 
+                />
+              </div>
+            </div>
+
+            {/* Menu Items - Premium Cards */}
+            <div className="px-4 space-y-4">
+              {filteredPlats.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <p className="text-gray-400 font-medium">Aucun plat trouvé</p>
+                </div>
+              ) : (
+                filteredPlats.map((plat, index) => (
+                  <Card 
+                    key={plat.id} 
+                    className="p-0 border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white rounded-[2rem] overflow-hidden group cursor-pointer"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex gap-0">
+                      {/* Image Section */}
+                      <div className="relative w-32 h-32 flex-shrink-0 overflow-hidden">
+                        <img 
+                          src={getImageUrl(plat.image_url)} 
+                          className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700" 
+                          alt={plat.nom} 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        {/* Add to cart button on image */}
+                        <button 
+                          onClick={() => addToBasket(plat)}
+                          className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-[0.8rem] shadow-lg flex items-center justify-center text-[#FC8A06] hover:bg-[#FC8A06] hover:text-white transition-all hover:scale-110 active:scale-95 z-10"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Content Section */}
+                      <div className="flex-1 p-4 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="font-black text-base text-[#03081F] group-hover:text-[#FC8A06] transition-colors line-clamp-1">
+                              {plat.nom}
+                            </h3>
+                            <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 hover:fill-red-500 transition-all cursor-pointer flex-shrink-0" />
+                          </div>
+                          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
+                            {plat.description || 'Un délicieux plat préparé avec soin par nos chefs'}
+                          </p>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-black text-[#FC8A06]">€{formatPrice(plat.prix)}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-yellow-400">
+                            <Star className="w-3 h-3 fill-current" />
+                            <span className="text-xs font-bold text-gray-600">4.{Math.floor(Math.random() * 3) + 7}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* MENUS LIST SCREEN - Display all menus */}
+        {step === 'MENUS_LIST' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="px-4">
+              <button 
+                onClick={() => setStep('HOME')}
+                className="text-gray-500 hover:text-[#FC8A06] font-medium text-sm flex items-center gap-2 mb-4"
+              >
+                ? Retour à l'accueil
+              </button>
+              <h2 className="text-3xl font-black text-[#03081F] mb-2">Nos Menus</h2>
+              <p className="text-gray-500">Découvrez nos formules complètes à prix fixe</p>
+            </div>
+
+            {menusLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader className="w-8 h-8 animate-spin text-[#FC8A06]" />
+              </div>
+            ) : menus.length === 0 ? (
+              <div className="px-4 text-center py-16">
+                <div className="w-20 h-20 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
+                  <UtensilsCrossed className="w-10 h-10 text-gray-300" />
+                </div>
+                <p className="text-gray-400 font-medium">Aucun menu disponible pour le moment</p>
+              </div>
+            ) : (
+              <div className="px-4 space-y-4">
+                {menus.filter((menu: Menu) => menu.actif).map((menu: Menu, index: number) => (
+                  <Card 
+                    key={menu.id} 
+                    className="p-0 border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-gradient-to-br from-white to-purple-50 rounded-[2rem] overflow-hidden group cursor-pointer"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="p-6">
+                      {/* Menu Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                              <UtensilsCrossed className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-black text-xl text-[#03081F] group-hover:text-purple-600 transition-colors">
+                                {menu.nom}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Award className="w-4 h-4 text-yellow-400" />
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Formule complète</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-purple-600">€{formatPrice(menu.prix_fixe)}</span>
+                          </div>
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix fixe</span>
+                        </div>
+                      </div>
+
+                      {/* Menu Description / Plats */}
+                      <div className="bg-white/60 rounded-[1.5rem] p-4 mb-4">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Ce menu comprend :</p>
+                        {menu.contenus && menu.contenus.length > 0 ? (
+                          <div className="space-y-2">
+                            {menu.contenus.slice(0, 3).map((contenu: any) => {
+                              const plat = plats.find(p => p.id === contenu.plat_id);
+                              return plat ? (
+                                <div key={contenu.plat_id} className="flex items-center gap-2 text-sm text-gray-700">
+                                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                  <span className="font-medium">{plat.nom}</span>
+                                </div>
+                              ) : null;
+                            })}
+                            {menu.contenus.length > 3 && (
+                              <p className="text-xs text-gray-400 font-medium italic">+ {menu.contenus.length - 3} autres plats...</p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">Menu personnalisable avec notre sélection</p>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            // Add all plats from menu to basket
+                            if (menu.contenus && menu.contenus.length > 0) {
+                              menu.contenus.forEach((contenu: any) => {
+                                const plat = plats.find(p => p.id === contenu.plat_id);
+                                if (plat && plat.disponible) {
+                                  addToBasket(plat);
+                                }
+                              });
+                              setIsBasketOpen(true);
+                            }
+                          }}
+                          className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-[1.2rem] py-4 px-6 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold flex items-center justify-center gap-2"
+                        >
+                          <ShoppingBasket className="w-5 h-5" />
+                          Commander ce menu
+                        </button>
+                        <button
+                          className="w-14 h-14 bg-white border-2 border-gray-100 rounded-[1.2rem] flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 transition-all"
+                        >
+                          <Heart className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Additional Info */}
+                      <div className="mt-4 pt-4 border-t border-gray-200/50 flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs">
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Clock className="w-3 h-3" />
+                            <span className="font-medium">~30 min</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-yellow-400">
+                            <Star className="w-3 h-3 fill-current" />
+                            <span className="font-bold text-gray-600">4.{Math.floor(Math.random() * 3) + 7}</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider bg-green-50 px-3 py-1 rounded-full">
+                          Économisez €{formatPrice(menu.contenus ? menu.contenus.reduce((acc: number, c: any) => {
+                            const plat = plats.find(p => p.id === c.plat_id);
+                            return acc + (plat?.prix || 0);
+                          }, 0) - menu.prix_fixe : 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TRACKING SCREEN - Enhanced Timeline */}
+        {step === 'TRACKING' && currentOrder && (
+          <div className="px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Card className="p-8 bg-gradient-to-br from-white to-green-50 border-none shadow-2xl rounded-[2.5rem]">
+              {/* Success Header */}
+              <div className="flex items-center justify-center mb-8">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping"></div>
+                  <div className="relative w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl">
+                    <CheckCircle className="w-10 h-10 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-black text-[#03081F] mb-2">Commande Confirmée !</h2>
+                <p className="text-sm text-gray-500 font-medium">Commande #{currentOrder.id}</p>
+              </div>
+
+              {/* Enhanced Timeline */}
+              <div className="relative py-6 mb-8">
+                {/* Progress Line */}
+                <div className="absolute left-[2.4rem] top-12 bottom-12 w-1 bg-gradient-to-b from-[#FC8A06] via-orange-400 to-gray-200 rounded-full"></div>
+                
+                <div className="space-y-8">
+                  {[
+                    { 
+                      status: OrderStatus.EN_ATTENTE_VALIDATION, 
+                      label: 'En attente', 
+                      sublabel: 'Commande reçue',
+                      icon: Clock,
+                      active: currentOrder.statut === OrderStatus.EN_ATTENTE_VALIDATION 
+                    },
+                    { 
+                      status: OrderStatus.VALIDEE, 
+                      label: 'Validée', 
+                      sublabel: 'Par notre équipe',
+                      icon: CheckCircle,
+                      active: [OrderStatus.VALIDEE, OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
+                    },
+                    { 
+                      status: OrderStatus.EN_COURS, 
+                      label: 'En préparation', 
+                      sublabel: 'Nos chefs au travail',
+                      icon: ChefHat,
+                      active: [OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
+                    },
+                    { 
+                      status: OrderStatus.PRETE, 
+                      label: 'Prêt !', 
+                      sublabel: 'Bonne dégustation',
+                      icon: Sparkles,
+                      active: [OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
+                    },
+                  ].map((s, idx) => (
+                    <div key={idx} className="flex items-center gap-5 relative">
+                      {/* Icon */}
+                      <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-500 ${
+                        s.active 
+                          ? 'bg-gradient-to-br from-[#FC8A06] to-orange-600 shadow-orange-500/50 scale-110' 
+                          : 'bg-white shadow-gray-200'
+                      }`}>
+                        <s.icon className={`w-6 h-6 ${s.active ? 'text-white' : 'text-gray-300'}`} />
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1">
+                        <p className={`font-black text-base transition-all ${s.active ? 'text-[#03081F]' : 'text-gray-400'}`}>
+                          {s.label}
+                        </p>
+                        <p className={`text-xs font-medium transition-all ${s.active ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {s.sublabel}
+                        </p>
+                      </div>
+
+                      {/* Active indicator */}
+                      {s.active && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-[9px] font-bold text-green-600 uppercase tracking-wider">Actif</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total & Actions */}
+              <div className="pt-6 border-t-2 border-dashed border-gray-200 space-y-4">
+                <div className="bg-white rounded-[1.5rem] p-5 shadow-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total à régler</span>
+                    <span className="text-3xl font-black text-[#FC8A06]">€{formatPrice(currentOrder.montant_total)}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setStep('HOME')}
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold"
+                >
+                  Retour à l'accueil
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* BASKET MODAL - Premium Design */}
+      <Modal isOpen={isBasketOpen} onClose={() => setIsBasketOpen(false)} title="">
+        <div className="relative">
+          {/* Custom Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-[#03081F]">Mon Panier</h2>
+              <p className="text-sm text-gray-500 font-medium">{basket.length} article{basket.length > 1 ? 's' : ''}</p>
+            </div>
+            <button 
+              onClick={() => setIsBasketOpen(false)}
+              className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {basket.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
+                <ShoppingBasket className="w-12 h-12 text-gray-300" />
+              </div>
+              <p className="text-gray-400 font-bold text-lg mb-2">Panier vide</p>
+              <p className="text-sm text-gray-400 mb-6">Ajoutez des plats pour commencer</p>
+              <Button variant="primary" onClick={() => setIsBasketOpen(false)} className="rounded-[1.2rem]">
+                Parcourir le menu
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {orderError && (
+                <div className="bg-red-50 border-2 border-red-200 text-red-600 p-4 rounded-[1.2rem] text-sm font-medium">
+                  {orderError}
+                </div>
+              )}
+
+              {/* Items List */}
+              <div className="max-h-80 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                {basket.map(item => (
+                  <div key={item.plat_id} className="bg-gradient-to-br from-gray-50 to-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex items-center gap-4">
+                      {/* Quantity Badge */}
+                      <div className="w-12 h-12 bg-gradient-to-br from-[#FC8A06] to-orange-600 rounded-[1rem] flex items-center justify-center shadow-lg flex-shrink-0">
+                        <span className="text-white font-black text-lg">{item.quantite}</span>
+                      </div>
+
+                      {/* Item Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[#03081F] truncate">{item.plat?.nom}</p>
+                        <p className="text-xs text-gray-500 font-medium">€{formatPrice(item.prix_unitaire)} × {item.quantite}</p>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <button 
+                          onClick={() => removeFromBasket(item.plat_id)} 
+                          className="w-9 h-9 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all active:scale-90"
+                        >
+                          <Minus className="w-4 h-4 mx-auto" />
+                        </button>
+                        <button 
+                          onClick={() => item.plat && addToBasket(item.plat)} 
+                          className="w-9 h-9 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all active:scale-90"
+                        >
+                          <Plus className="w-4 h-4 mx-auto" />
+                        </button>
+                      </div>
+
+                      {/* Item Total */}
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-black text-[#FC8A06] text-lg">
+                          €{formatPrice(item.prix_unitaire * item.quantite)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary */}
+              <div className="space-y-3 pt-4 border-t-2 border-dashed border-gray-200">
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-[1.5rem] p-6 shadow-inner">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">Total</span>
+                    <span className="text-4xl font-black text-[#FC8A06]">€{formatPrice(totalInCentimes)}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium text-right">Taxes et service inclus</p>
+                </div>
+
+                <button
+                  onClick={placeOrder}
+                  className="w-full bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-[1.5rem] p-6 shadow-2xl shadow-orange-500/40 hover:shadow-orange-500/60 transition-all hover:-translate-y-1 active:scale-95 font-black text-lg"
+                >
+                  Commander maintenant
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* RESERVATION MODAL - Modern Design */}
+      <Modal isOpen={isReservationOpen} onClose={() => setIsReservationOpen(false)} title="">
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-[#03081F]">Réservation</h2>
+              <p className="text-sm text-gray-500 font-medium">Garantissez votre table</p>
+            </div>
+            <button 
+              onClick={() => setIsReservationOpen(false)}
+              className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {reservationSuccess ? (
+            <div className="py-16 text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-xl font-black text-[#03081F] mb-2">Réservation envoyée !</h3>
+              <p className="text-gray-500 font-medium">Le gérant va examiner votre demande</p>
+            </div>
+          ) : (
+            <form className="space-y-5" onSubmit={createReservation}>
+              {reservationError && (
+                <div className="bg-red-50 border-2 border-red-200 text-red-600 p-4 rounded-[1.2rem] text-sm font-medium">
+                  {reservationError}
+                </div>
+              )}
+
+              {/* Number of guests */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Nombre de personnes</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {[2, 4, 6, 8].map(n => (
+                    <button 
+                      key={n} 
+                      type="button"
+                      onClick={() => setReservationData(prev => ({ ...prev, nbPersonnes: n }))}
+                      className={`h-14 border-2 rounded-[1.2rem] font-black text-lg transition-all active:scale-95 ${
+                        reservationData.nbPersonnes === n
+                          ? 'border-[#FC8A06] bg-orange-50 text-[#FC8A06]'
+                          : 'border-gray-200 hover:border-[#FC8A06] hover:bg-orange-50 hover:text-[#FC8A06]'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Date & Heure</label>
+                <input 
+                  type="datetime-local"
+                  required
+                  value={reservationData.dateReservation}
+                  onChange={(e) => setReservationData(prev => ({ ...prev, dateReservation: e.target.value }))}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.2rem] font-medium outline-none focus:border-[#FC8A06] transition-all" 
+                />
+              </div>
+
+              {/* Comment */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Commentaire (optionnel)</label>
+                <textarea 
+                  value={reservationData.commentaire}
+                  onChange={(e) => setReservationData(prev => ({ ...prev, commentaire: e.target.value }))}
+                  placeholder="Allergie, demande spéciale..."
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.2rem] h-24 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all"
+                />
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold mt-6"
+              >
+                Confirmer ma réservation
+              </button>
+            </form>
+          )}
+        </div>
+      </Modal>
+
+      {/* REVIEW MODAL - Interactive */}
+      <Modal isOpen={isReviewOpen} onClose={() => setIsReviewOpen(false)} title="">
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-[#03081F]">Votre Avis</h2>
+              <p className="text-sm text-gray-500 font-medium">Partagez votre expérience</p>
+            </div>
+            <button 
+              onClick={() => setIsReviewOpen(false)}
+              className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div className="text-center">
+              <p className="text-gray-600 mb-5 font-medium">Comment s'est passée votre visite ?</p>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button 
+                    key={star} 
+                    className="text-gray-200 hover:text-yellow-400 hover:scale-125 transition-all active:scale-110"
+                  >
+                    <Star className="w-12 h-12 fill-current" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Votre commentaire</label>
+              <textarea 
+                placeholder="Partagez votre expérience avec nous..." 
+                className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.5rem] h-32 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all" 
+              />
+            </div>
+
+            <button
+              onClick={() => setIsReviewOpen(false)}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold"
+            >
+              Envoyer mon avis
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* FLOATING CART BUTTON - Enhanced */}
+      {step === 'MENU' && basket.length > 0 && !isBasketOpen && (
+        <div className="fixed bottom-8 left-0 right-0 z-40 px-4">
+          <div className="max-w-md mx-auto">
+            <button
+              onClick={() => setIsBasketOpen(true)}
+              className="w-full bg-gradient-to-r from-[#03081F] via-gray-900 to-[#03081F] rounded-[1.5rem] p-5 shadow-2xl border-2 border-white/10 hover:scale-105 transition-all active:scale-95"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 bg-green-500 rounded-[1rem] flex items-center justify-center shadow-lg">
+                      <ShoppingBasket className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xs font-black">{basket.reduce((a, b) => a + b.quantite, 0)}</span>
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Mon panier</p>
+                    <p className="font-black text-white text-lg">€{formatPrice(totalInCentimes)}</p>
+                  </div>
+                </div>
+                <div className="bg-[#FC8A06] px-5 py-2 rounded-[1rem] shadow-lg">
+                  <span className="text-white font-black text-sm">Voir</span>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

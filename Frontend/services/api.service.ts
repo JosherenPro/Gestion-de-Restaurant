@@ -13,28 +13,28 @@ class ApiService {
 
   private getHeaders(token?: string, isFormData: boolean = false): HeadersInit {
     const headers: HeadersInit = {};
-    
+
     if (!isFormData) {
       headers['Content-Type'] = 'application/json';
     }
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     return headers;
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`;
-      
+
       try {
         const errorData = await response.json();
         // Extract the most relevant error message
         if (errorData.detail) {
-          errorMessage = typeof errorData.detail === 'string' 
-            ? errorData.detail 
+          errorMessage = typeof errorData.detail === 'string'
+            ? errorData.detail
             : JSON.stringify(errorData.detail);
         } else if (errorData.message) {
           errorMessage = errorData.message;
@@ -45,15 +45,15 @@ class ApiService {
         // If JSON parsing fails, use status text
         errorMessage = response.statusText || errorMessage;
       }
-      
+
       throw new Error(errorMessage);
     }
-    
+
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       return response.json();
     }
-    
+
     return {} as T;
   }
 
@@ -156,7 +156,7 @@ class ApiService {
     if (!payload?.sub) {
       throw new Error('Token invalide');
     }
-    
+
     const email = payload.sub;
     // Fetch user by email
     return this.get(API_CONFIG.ENDPOINTS.UTILISATEURS.BY_EMAIL(email), { token });
@@ -191,10 +191,31 @@ class ApiService {
     return this.post(API_CONFIG.ENDPOINTS.PLATS.BASE, data, { token });
   }
 
+  async updatePlat(id: number, data: any, token: string): Promise<any> {
+    return this.put(API_CONFIG.ENDPOINTS.PLATS.BY_ID(id), data, { token });
+  }
+
+  async deletePlat(id: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.PLATS.BY_ID(id), { token });
+  }
+
   async uploadPlatImage(platId: number, file: File, token: string): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
     return this.postFormData(API_CONFIG.ENDPOINTS.PLATS.IMAGE(platId), formData, { token });
+  }
+
+  // Categories endpoints (Gerant)
+  async createCategorie(data: any, token: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.CATEGORIES.BASE, data, { token });
+  }
+
+  async updateCategorie(id: number, data: any, token: string): Promise<any> {
+    return this.put(API_CONFIG.ENDPOINTS.CATEGORIES.BY_ID(id), data, { token });
+  }
+
+  async deleteCategorie(id: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.CATEGORIES.BY_ID(id), { token });
   }
 
   // Commandes endpoints
@@ -234,9 +255,17 @@ class ApiService {
     return this.post(`${API_CONFIG.ENDPOINTS.COMMANDES.PAYEE(commandeId)}?methode=${methode}`, {}, { token });
   }
 
+  async receptionnerCommande(commandeId: number, token?: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.COMMANDES.RECEPTIONNER(commandeId), {}, { token });
+  }
+
   // Tables endpoints
   async getTables(token?: string): Promise<any[]> {
     return this.get(API_CONFIG.ENDPOINTS.TABLES.BASE, { token });
+  }
+
+  async getTableById(id: number, token?: string): Promise<any> {
+    return this.get(API_CONFIG.ENDPOINTS.TABLES.BY_ID(id), { token });
   }
 
   async getTableByQR(qrCode: string, token?: string): Promise<any> {
@@ -245,6 +274,22 @@ class ApiService {
 
   async createTable(data: any, token: string): Promise<any> {
     return this.post(API_CONFIG.ENDPOINTS.TABLES.BASE, data, { token });
+  }
+
+  async updateTable(id: number, data: any, token: string): Promise<any> {
+    return this.put(API_CONFIG.ENDPOINTS.TABLES.BY_ID(id), data, { token });
+  }
+
+  async deleteTable(id: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.TABLES.BY_ID(id), { token });
+  }
+
+  async occuperTable(id: number, token: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.TABLES.OCCUPER(id), {}, { token });
+  }
+
+  async libererTable(id: number, token: string): Promise<any> {
+    return this.post(API_CONFIG.ENDPOINTS.TABLES.LIBERER(id), {}, { token });
   }
 
   // Reservations endpoints
@@ -258,6 +303,14 @@ class ApiService {
 
   async getReservationById(id: number, token?: string): Promise<any> {
     return this.get(API_CONFIG.ENDPOINTS.RESERVATIONS.BY_ID(id), { token });
+  }
+
+  async updateReservation(id: number, data: any, token: string): Promise<any> {
+    return this.put(API_CONFIG.ENDPOINTS.RESERVATIONS.BY_ID(id), data, { token });
+  }
+
+  async deleteReservation(id: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.RESERVATIONS.BY_ID(id), { token });
   }
 
   async checkDisponibilite(tableId: number, dateReservation: string, token?: string): Promise<any> {
@@ -298,8 +351,12 @@ class ApiService {
     return this.get(API_CONFIG.ENDPOINTS.STATS.GLOBAL, { token });
   }
 
-  async getTopPlats(token: string): Promise<any[]> {
-    return this.get(API_CONFIG.ENDPOINTS.STATS.TOP_PLATS, { token });
+  async getTopPlats(token: string, limit: number = 5): Promise<any[]> {
+    return this.get(`${API_CONFIG.ENDPOINTS.STATS.TOP_PLATS}?limit=${limit}`, { token });
+  }
+
+  async getRevenueStats(token: string): Promise<any[]> {
+    return this.get(API_CONFIG.ENDPOINTS.STATS.REVENUE, { token });
   }
 
   async getDashboard(token: string): Promise<any> {
@@ -320,6 +377,14 @@ class ApiService {
     return this.get(API_CONFIG.ENDPOINTS.PERSONNEL.BASE, { token });
   }
 
+  async getPersonnelById(id: number, token: string): Promise<any> {
+    return this.get(API_CONFIG.ENDPOINTS.PERSONNEL.BY_ID(id), { token });
+  }
+
+  async deletePersonnel(id: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.PERSONNEL.BY_ID(id), { token });
+  }
+
   async registerGerant(data: any, token: string): Promise<any> {
     return this.post(API_CONFIG.ENDPOINTS.PERSONNEL.GERANTS, data, { token });
   }
@@ -330,6 +395,52 @@ class ApiService {
 
   async registerCuisinier(data: any, token: string): Promise<any> {
     return this.post(API_CONFIG.ENDPOINTS.PERSONNEL.CUISINIERS, data, { token });
+  }
+
+  // Utilisateurs endpoints
+  async getUtilisateurs(token: string): Promise<any[]> {
+    return this.get(API_CONFIG.ENDPOINTS.UTILISATEURS.BASE, { token });
+  }
+
+  async getUtilisateurById(id: number, token: string): Promise<any> {
+    return this.get(API_CONFIG.ENDPOINTS.UTILISATEURS.BY_ID(id), { token });
+  }
+
+  async deleteUtilisateur(id: number, token: string): Promise<any> {
+    return this.delete(API_CONFIG.ENDPOINTS.UTILISATEURS.BY_ID(id), { token });
+  }
+
+  /**
+   * Récupère le personnel avec les informations utilisateur enrichies
+   * Fait une jointure côté client entre personnel et utilisateurs
+   */
+  async getPersonnelWithDetails(token: string): Promise<any[]> {
+    try {
+      // Récupérer la liste du personnel
+      const personnelList = await this.getPersonnel(token);
+
+      // Récupérer tous les utilisateurs
+      const utilisateurs = await this.getUtilisateurs(token);
+
+      // Créer un map des utilisateurs par ID
+      const utilisateursMap = new Map(utilisateurs.map(u => [u.id, u]));
+
+      // Enrichir chaque membre du personnel avec les infos utilisateur
+      return personnelList.map(p => {
+        const user = utilisateursMap.get(p.utilisateur_id);
+        return {
+          ...p,
+          nom: user?.nom || '',
+          prenom: user?.prenom || '',
+          email: user?.email || '',
+          telephone: user?.telephone || '',
+          role: user?.role || 'PERSONNEL'
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching personnel with details:', error);
+      return [];
+    }
   }
 
   // Menus endpoints

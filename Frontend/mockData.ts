@@ -43,7 +43,7 @@ export const formatMenuItem = (item: MenuItem): MenuItemDisplay => {
   return {
     ...item,
     name: item.nom,
-    price: item.prix / 100, // Convert from centimes to euros
+    price: item.prix, // Keep raw value for FCFA
     category: item.categorie?.nom || '',
     image: item.image_url ? `${API_CONFIG.BASE_URL}${item.image_url}` : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&h=300',
     isAvailable: item.disponible,
@@ -58,7 +58,7 @@ export const getCategoryName = (categoryId: number, categories: Categorie[]): st
 
 // Helper function to format price
 export const formatPrice = (priceInCentimes: number): string => {
-  return (priceInCentimes / 100).toFixed(2);
+  return priceInCentimes.toFixed(0);
 };
 
 // Mock data for demo purposes (kept for reference)
@@ -145,13 +145,13 @@ export const STAFF: StaffDisplay[] = [
 ];
 
 export const RESERVATIONS: Reservation[] = [
-  { 
-    id: 1, 
-    client_id: 1, 
-    table_id: 3, 
-    date_reservation: '2024-05-20T19:30:00Z', 
-    nombre_personnes: 4, 
-    statut: 'CONFIRMEE' 
+  {
+    id: 1,
+    client_id: 1,
+    table_id: 3,
+    date_reservation: '2024-05-20T19:30:00Z',
+    nombre_personnes: 4,
+    statut: 'CONFIRMEE'
   }
 ];
 
