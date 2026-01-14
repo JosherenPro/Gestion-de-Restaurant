@@ -1,6 +1,6 @@
 export const API_CONFIG = {
-BASE_URL: import.meta.env.VITE_API_URL || 'https://gestion-de-restaurant.onrender.com',
-ENDPOINTS: {
+  BASE_URL: import.meta.env.VITE_API_URL || 'https://gestion-de-restaurant.onrender.com',
+  ENDPOINTS: {
     // Auth
     AUTH: {
       TOKEN: '/auth/token',
@@ -40,12 +40,15 @@ ENDPOINTS: {
       PRETE: (id: number) => `/commandes/${id}/prete`,
       SERVIR: (id: number) => `/commandes/${id}/servir`,
       PAYEE: (id: number) => `/commandes/${id}/payee`,
+      RECEPTIONNER: (id: number) => `/commandes/${id}/receptionner`,
     },
     // Tables
     TABLES: {
       BASE: '/tables',
       BY_ID: (id: number) => `/tables/${id}`,
       BY_QR: (qrCode: string) => `/tables/qr/${qrCode}`,
+      OCCUPER: (id: number) => `/tables/${id}/occuper`,
+      LIBERER: (id: number) => `/tables/${id}/liberer`,
     },
     // Reservations
     RESERVATIONS: {
@@ -70,6 +73,7 @@ ENDPOINTS: {
     STATS: {
       GLOBAL: '/stats/global',
       TOP_PLATS: '/stats/top-plats',
+      REVENUE: '/stats/revenue',
       DASHBOARD: '/stats/dashboard',
     },
     // Personnel
