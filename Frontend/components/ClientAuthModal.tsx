@@ -68,29 +68,48 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
     setLoading(true);
 
     try {
-      console.log('?? Tentative d\'inscription avec:', registerData);
+      console.log('📝 Tentative d\'inscription avec:', registerData);
 
       // Prepare data for API (map fields to match backend schema)
       const apiData = {
-        ...registerData,
+        nom: registerData.nom,
+        prenom: registerData.prenom,
+        email: registerData.email,
+        telephone: registerData.telephone,
         password: registerData.mot_de_passe,
-        role: 'CLIENT'
+        role: 'client'
       };
 
+      console.log('📤 Données envoyées à l\'API:', apiData);
+
       // Register client
-      const registerResponse = await apiService.registerClient(apiData);
-      console.log('? Inscription r�ussie:', registerResponse);
+      let registerResponse;
+      try {
+        registerResponse = await apiService.registerClient(apiData);
+        console.log('✅ Inscription réussie:', registerResponse);
+      } catch (registerErr: any) {
+        console.error('❌ Erreur d\'inscription:', registerErr);
+        // Check for specific error messages
+        const msg = registerErr.message || '';
+        if (msg.includes('email') || msg.includes('Email')) {
+          throw new Error('Cet email est déjà utilisé. Veuillez vous connecter.');
+        }
+        if (msg.includes('telephone') || msg.includes('Telephone')) {
+          throw new Error('Ce numéro de téléphone est déjà utilisé.');
+        }
+        throw new Error(msg || 'Erreur lors de l\'inscription. Veuillez réessayer.');
+      }
 
       // Auto-login after registration
-      console.log('?? Auto-connexion apr�s inscription...');
+      console.log('🔄 Auto-connexion après inscription...');
       const response = await apiService.login(registerData.email, registerData.mot_de_passe);
-      console.log('? R�ponse auto-login:', response);
+      console.log('✅ Réponse auto-login:', response);
       const token = response.access_token;
 
       // Get user info
-      console.log('?? R�cup�ration des infos utilisateur...');
+      console.log('👤 Récupération des infos utilisateur...');
       const userData = await apiService.getCurrentUser(token);
-      console.log('? Donn�es utilisateur:', userData);
+      console.log('✅ Données utilisateur:', userData);
 
       // Store token
       localStorage.setItem('client_token', token);
@@ -98,7 +117,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
       onSuccess(token, userData);
       onClose();
     } catch (err: any) {
-      console.error('? Erreur d\'inscription:', err);
+      console.error('❌ Erreur d\'inscription:', err);
       const errorMessage = err.message || 'Erreur lors de l\'inscription';
       setError(errorMessage);
 
@@ -147,8 +166,8 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
             <button
               onClick={() => setMode('login')}
               className={`flex-1 py-3 rounded-[1rem] font-bold text-sm transition-all ${mode === 'login'
-                  ? 'bg-white text-[#FC8A06] shadow-md'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-[#FC8A06] shadow-md'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <LogIn className="w-4 h-4 inline mr-2" />
@@ -157,8 +176,8 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
             <button
               onClick={() => setMode('register')}
               className={`flex-1 py-3 rounded-[1rem] font-bold text-sm transition-all ${mode === 'register'
-                  ? 'bg-white text-[#FC8A06] shadow-md'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-[#FC8A06] shadow-md'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <UserPlus className="w-4 h-4 inline mr-2" />

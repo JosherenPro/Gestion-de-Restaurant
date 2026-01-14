@@ -987,8 +987,8 @@ export const ClientView: React.FC = () => {
                     </button>
                   )}
 
-                  {/* Pay Button - main action */}
-                  {currentOrder.statut !== OrderStatus.PAYEE && currentOrder.statut !== OrderStatus.ANNULEE && (
+                  {/* Pay Button - main action (only visible after server validation) */}
+                  {currentOrder.statut !== OrderStatus.PAYEE && currentOrder.statut !== OrderStatus.ANNULEE && currentOrder.statut !== OrderStatus.EN_ATTENTE_VALIDATION && (
                     <button
                       onClick={() => setIsPaymentOpen(true)}
                       className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold flex items-center justify-center gap-3"
@@ -996,6 +996,14 @@ export const ClientView: React.FC = () => {
                       <CreditCard className="w-5 h-5" />
                       Payer maintenant
                     </button>
+                  )}
+
+                  {/* Message when waiting for server validation */}
+                  {currentOrder.statut === OrderStatus.EN_ATTENTE_VALIDATION && (
+                    <div className="w-full bg-yellow-50 border-2 border-yellow-200 text-yellow-700 rounded-[1.5rem] p-5 font-bold flex items-center justify-center gap-3">
+                      <Clock className="w-5 h-5" />
+                      En attente de validation par le serveur
+                    </div>
                   )}
 
                   {/* Paid confirmation */}
