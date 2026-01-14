@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { LayoutDashboard, Users, Utensils, Table as TableIcon, FileText, Settings, TrendingUp, DollarSign, ShoppingBag, Plus, Loader, RefreshCcw, LogOut, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { Card, Button } from './UI';
 import { apiService } from '../services/api.service';
+import { API_CONFIG } from '../config/api.config';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../mockData';
 
@@ -13,7 +14,7 @@ export const AdminViewConnected: React.FC = () => {
   const [currentView, setCurrentView] = useState<'DASHBOARD' | 'MENU' | 'STAFF' | 'TABLES'>('DASHBOARD');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Data states
   const [stats, setStats] = useState<any>(null);
   const [dashboard, setDashboard] = useState<any>(null);
@@ -29,10 +30,10 @@ export const AdminViewConnected: React.FC = () => {
 
   const loadData = async () => {
     if (!token) return;
-    
+
     try {
       setLoading(true);
-      
+
       if (currentView === 'DASHBOARD') {
         const [statsData, dashboardData] = await Promise.all([
           apiService.getStatsGlobal(token),
@@ -50,7 +51,7 @@ export const AdminViewConnected: React.FC = () => {
         const tablesData = await apiService.getTables(token);
         setTables(tablesData);
       }
-      
+
       setError(null);
     } catch (err: any) {
       console.error('Error loading data:', err);
@@ -89,17 +90,16 @@ export const AdminViewConnected: React.FC = () => {
           {[
             { icon: LayoutDashboard, label: 'Dashboard', id: 'DASHBOARD' },
             { icon: Utensils, label: 'Gestion Menu', id: 'MENU' },
-            { icon: Users, label: 'Équipe & Staff', id: 'STAFF' },
+            { icon: Users, label: 'Ã‰quipe & Staff', id: 'STAFF' },
             { icon: TableIcon, label: 'Plan de Salle', id: 'TABLES' },
           ].map((item, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentView(item.id as any)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${
-                currentView === item.id 
-                  ? 'bg-[#FC8A06] text-white shadow-xl shadow-[#FC8A06]/20' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${currentView === item.id
+                ? 'bg-[#FC8A06] text-white shadow-xl shadow-[#FC8A06]/20'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
             >
               <item.icon size={20} className={currentView === item.id ? 'text-white' : 'group-hover:text-[#FC8A06]'} />
               <span className="font-bold text-sm tracking-tight">{item.label}</span>
@@ -119,12 +119,12 @@ export const AdminViewConnected: React.FC = () => {
               </div>
             </div>
           )}
-          <button 
+          <button
             onClick={logout}
             className="w-full flex items-center gap-4 px-5 py-4 text-gray-500 hover:text-white transition-all rounded-2xl hover:bg-white/5"
           >
             <LogOut size={20} />
-            <span className="font-bold text-sm">Déconnexion</span>
+            <span className="font-bold text-sm">DÃ©connexion</span>
           </button>
         </div>
       </aside>
@@ -134,14 +134,14 @@ export const AdminViewConnected: React.FC = () => {
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
             <h1 className="text-4xl font-black text-[#03081F] tracking-tight">
-              {currentView === 'DASHBOARD' ? 'Dashboard' : 
-               currentView === 'MENU' ? 'Catalogue Menu' : 
-               currentView === 'STAFF' ? 'Équipe' : 'Tables'}
+              {currentView === 'DASHBOARD' ? 'Dashboard' :
+                currentView === 'MENU' ? 'Catalogue Menu' :
+                  currentView === 'STAFF' ? 'Ã‰quipe' : 'Tables'}
             </h1>
-            <p className="text-gray-400 font-medium mt-1">Gérez votre établissement en toute simplicité.</p>
+            <p className="text-gray-400 font-medium mt-1">GÃ©rez votre Ã©tablissement en toute simplicitÃ©.</p>
           </div>
           <div className="flex gap-4">
-            <button 
+            <button
               onClick={loadData}
               className="p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all"
             >
@@ -161,28 +161,28 @@ export const AdminViewConnected: React.FC = () => {
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
-                { 
-                  label: 'Chiffre d\'affaires', 
-                  value: `€${formatPrice(stats.chiffre_affaires_total || 0)}`, 
-                  icon: DollarSign, 
+                {
+                  label: 'Chiffre d\'affaires',
+                  value: `â‚¬${formatPrice(stats.chiffre_affaires_total || 0)}`,
+                  icon: DollarSign,
                   color: 'bg-green-100 text-green-600'
                 },
-                { 
-                  label: 'Commandes totales', 
-                  value: stats.nombre_commandes || 0, 
-                  icon: ShoppingBag, 
+                {
+                  label: 'Commandes totales',
+                  value: stats.nombre_commandes || 0,
+                  icon: ShoppingBag,
                   color: 'bg-blue-100 text-blue-600'
                 },
-                { 
-                  label: 'Note moyenne', 
-                  value: `${(stats.note_moyenne || 0).toFixed(1)}/5`, 
-                  icon: TrendingUp, 
+                {
+                  label: 'Note moyenne',
+                  value: `${(stats.note_moyenne || 0).toFixed(1)}/5`,
+                  icon: TrendingUp,
                   color: 'bg-orange-100 text-orange-600'
                 },
-                { 
-                  label: 'Clients', 
-                  value: stats.nombre_clients || 0, 
-                  icon: Users, 
+                {
+                  label: 'Clients',
+                  value: stats.nombre_clients || 0,
+                  icon: Users,
                   color: 'bg-purple-100 text-purple-600'
                 },
               ].map((stat, idx) => (
@@ -215,7 +215,7 @@ export const AdminViewConnected: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-[#FC8A06]">€{formatPrice(plat.chiffre_affaires)}</p>
+                        <p className="font-black text-[#FC8A06]">â‚¬{formatPrice(plat.chiffre_affaires)}</p>
                       </div>
                     </div>
                   ))}
@@ -231,7 +231,7 @@ export const AdminViewConnected: React.FC = () => {
               <thead>
                 <tr className="bg-gray-50/50">
                   <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">Plat</th>
-                  <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">Catégorie</th>
+                  <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">CatÃ©gorie</th>
                   <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">Prix</th>
                   <th className="px-8 py-6 text-xs font-black text-gray-400 uppercase tracking-widest">Statut</th>
                 </tr>
@@ -243,10 +243,10 @@ export const AdminViewConnected: React.FC = () => {
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
                           {item.image_url ? (
-                            <img 
-                              src={`https://gestion-de-restaurant.onrender.com${item.image_url}`} 
-                              className="w-full h-full object-cover" 
+                            <img
+                              src={`${API_CONFIG.BASE_URL}${item.image_url}`}
                               alt={item.nom}
+                              className="w-10 h-10 rounded-lg object-cover"
                             />
                           ) : (
                             <Utensils className="w-6 h-6 text-gray-300" />
@@ -264,7 +264,7 @@ export const AdminViewConnected: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="font-black text-[#03081F]">€{formatPrice(item.prix)}</span>
+                      <span className="font-black text-[#03081F]">â‚¬{formatPrice(item.prix)}</span>
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-2">
@@ -305,9 +305,8 @@ export const AdminViewConnected: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-400 font-bold uppercase">Statut</span>
-                    <span className={`px-3 py-1 rounded-full font-black text-[9px] uppercase ${
-                      member.actif ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                    }`}>
+                    <span className={`px-3 py-1 rounded-full font-black text-[9px] uppercase ${member.actif ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
                       {member.actif ? 'Actif' : 'Inactif'}
                     </span>
                   </div>
@@ -325,17 +324,16 @@ export const AdminViewConnected: React.FC = () => {
                   <div className="w-16 h-16 bg-[#03081F] rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-lg">
                     {table.numero_table}
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                    table.statut === 'LIBRE' ? 'bg-green-100 text-green-700' :
+                  <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${table.statut === 'LIBRE' ? 'bg-green-100 text-green-700' :
                     table.statut === 'OCCUPEE' ? 'bg-orange-100 text-orange-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
+                      'bg-blue-100 text-blue-700'
+                    }`}>
                     {table.statut}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Capacité</span>
+                    <span className="text-gray-400">CapacitÃ©</span>
                     <span className="font-bold text-[#03081F]">{table.capacite} personnes</span>
                   </div>
                 </div>

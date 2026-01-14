@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api.service';
+import { API_CONFIG } from '../config/api.config';
 import { useAuth } from '../context/AuthContext';
 import { Order, OrderStatus } from '../types';
 import { Badge, Button, Card } from './UI';
@@ -22,13 +23,13 @@ export const ChefViewConnected: React.FC = () => {
 
   const loadData = async () => {
     if (!token) return;
-    
+
     try {
       const [commandesData, platsData] = await Promise.all([
         apiService.getCommandes(token),
         apiService.getPlats(token)
       ]);
-      
+
       setOrders(commandesData);
       setPlats(platsData);
       setError(null);
@@ -42,7 +43,7 @@ export const ChefViewConnected: React.FC = () => {
 
   const startPreparation = async (commandeId: number) => {
     if (!token) return;
-    
+
     try {
       await apiService.preparerCommande(commandeId, token);
       loadData();
@@ -53,7 +54,7 @@ export const ChefViewConnected: React.FC = () => {
 
   const markAsReady = async (commandeId: number) => {
     if (!token || !user) return;
-    
+
     try {
       await apiService.commandePrete(commandeId, user.id, token);
       loadData();
@@ -64,7 +65,7 @@ export const ChefViewConnected: React.FC = () => {
 
   const togglePlatAvailability = async (platId: number, currentStatus: boolean) => {
     if (!token) return;
-    
+
     try {
       await apiService.put(`/plats/${platId}`, { disponible: !currentStatus }, { token });
       loadData();
@@ -95,41 +96,39 @@ export const ChefViewConnected: React.FC = () => {
             <ChefHat className="text-[#FC8A06] w-10 h-10" /> CUISINE DIRECT
           </h1>
           <p className="text-gray-400 font-bold text-sm uppercase tracking-widest mt-1">
-            Système de gestion de production
+            SystÃ¨me de gestion de production
           </p>
           {user && (
             <p className="text-sm mt-2">
-              <span className="text-gray-500">Connecté:</span>{' '}
+              <span className="text-gray-500">ConnectÃ©:</span>{' '}
               <span className="font-bold text-[#03081F]">{user.prenom} {user.nom}</span>
             </p>
           )}
         </div>
-        
+
         <div className="flex gap-4 items-center">
           <button onClick={loadData} className="p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all">
             <RefreshCcw className="w-5 h-5 text-gray-600" />
           </button>
-          
+
           <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100">
-            <button 
+            <button
               onClick={() => setActiveTab('COMMANDES')}
-              className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${
-                activeTab === 'COMMANDES' ? 'bg-[#FC8A06] text-white shadow-lg' : 'text-gray-400 hover:text-[#03081F]'
-              }`}
+              className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${activeTab === 'COMMANDES' ? 'bg-[#FC8A06] text-white shadow-lg' : 'text-gray-400 hover:text-[#03081F]'
+                }`}
             >
               Commandes
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('STOCK')}
-              className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${
-                activeTab === 'STOCK' ? 'bg-[#FC8A06] text-white shadow-lg' : 'text-gray-400 hover:text-[#03081F]'
-              }`}
+              className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${activeTab === 'STOCK' ? 'bg-[#FC8A06] text-white shadow-lg' : 'text-gray-400 hover:text-[#03081F]'
+                }`}
             >
               Gestion Stock
             </button>
           </div>
 
-          <button 
+          <button
             onClick={logout}
             className="p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all"
           >
@@ -146,7 +145,7 @@ export const ChefViewConnected: React.FC = () => {
 
       {activeTab === 'COMMANDES' ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Column: À Préparer */}
+          {/* Column: Ã€ PrÃ©parer */}
           <section className="space-y-6">
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-black text-[#03081F] flex items-center gap-3">
@@ -174,7 +173,7 @@ export const ChefViewConnected: React.FC = () => {
                         </span>
                       </div>
                       <span className="text-gray-400 text-xs font-bold flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
-                        <Timer size={14} /> 
+                        <Timer size={14} />
                         {order.created_at && (() => {
                           const minutes = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
                           return `il y a ${minutes} min`;
@@ -185,16 +184,16 @@ export const ChefViewConnected: React.FC = () => {
                       {order.lignes?.map((item, i) => (
                         <div key={i} className="flex justify-between items-center bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50">
                           <span className="font-bold text-[#03081F]">
-                            <span className="text-[#FC8A06] font-black text-lg mr-3">{item.quantite}x</span> 
+                            <span className="text-[#FC8A06] font-black text-lg mr-3">{item.quantite}x</span>
                             {item.plat?.nom || 'Plat'}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <Button 
-                      fullWidth 
-                      onClick={() => startPreparation(order.id)} 
-                      variant="secondary" 
+                    <Button
+                      fullWidth
+                      onClick={() => startPreparation(order.id)}
+                      variant="secondary"
                       className="h-14 rounded-2xl shadow-xl shadow-gray-200"
                     >
                       <Play size={18} fill="currentColor" /> PRENDRE EN CHARGE
@@ -205,7 +204,7 @@ export const ChefViewConnected: React.FC = () => {
             </div>
           </section>
 
-          {/* Column: En Préparation */}
+          {/* Column: En PrÃ©paration */}
           <section className="space-y-6">
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-black text-[#03081F] flex items-center gap-3">
@@ -238,20 +237,20 @@ export const ChefViewConnected: React.FC = () => {
                       {order.lignes?.map((item, i) => (
                         <div key={i} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
                           <span className="font-bold">
-                            <span className="text-[#FC8A06] font-black text-lg mr-3">{item.quantite}x</span> 
+                            <span className="text-[#FC8A06] font-black text-lg mr-3">{item.quantite}x</span>
                             {item.plat?.nom || 'Plat'}
                           </span>
                         </div>
                       ))}
                     </div>
                     <div className="flex gap-3">
-                      <Button 
-                        fullWidth 
-                        onClick={() => markAsReady(order.id)} 
-                        variant="success" 
+                      <Button
+                        fullWidth
+                        onClick={() => markAsReady(order.id)}
+                        variant="success"
                         className="h-14 rounded-2xl shadow-lg shadow-green-900/20"
                       >
-                        <Check size={20} /> MARQUER COMME PRÊT
+                        <Check size={20} /> MARQUER COMME PRÃŠT
                       </Button>
                     </div>
                   </Card>
@@ -266,12 +265,11 @@ export const ChefViewConnected: React.FC = () => {
             <Card key={item.id} className="p-6 bg-white border-none rounded-3xl shadow-md group">
               <div className="relative h-40 w-full mb-4 rounded-2xl overflow-hidden bg-gray-100">
                 {item.image_url ? (
-                  <img 
-                    src={`https://gestion-de-restaurant.onrender.com${item.image_url}`} 
-                    className={`w-full h-full object-cover transition-all duration-500 ${
-                      !item.disponible ? 'grayscale opacity-50' : 'group-hover:scale-110'
-                    }`} 
-                    alt={item.nom}
+                  <img
+                    src={`${API_CONFIG.BASE_URL}${item.image_url}`}
+                    className={`w-full h-full object-cover transition-all duration-500 ${!item.disponible ? 'grayscale opacity-50' : 'group-hover:scale-110'
+                      }`}
+                    alt={item.nom_plat}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-300">
@@ -290,17 +288,17 @@ export const ChefViewConnected: React.FC = () => {
               <p className="text-xs text-gray-400 mb-2 font-medium">
                 {item.categorie?.nom || 'Autre'}
               </p>
-              <p className="text-sm font-bold text-[#FC8A06] mb-4">€{formatPrice(item.prix)}</p>
-              <Button 
-                fullWidth 
-                variant={item.disponible ? 'outline' : 'success'} 
+              <p className="text-sm font-bold text-[#FC8A06] mb-4">â‚¬{formatPrice(item.prix)}</p>
+              <Button
+                fullWidth
+                variant={item.disponible ? 'outline' : 'success'}
                 className="h-11 rounded-xl text-xs font-black"
                 onClick={() => togglePlatAvailability(item.id, item.disponible)}
               >
                 {item.disponible ? (
-                  <><EyeOff size={14} /> Déclarer Indisponible</>
+                  <><EyeOff size={14} /> DÃ©clarer Indisponible</>
                 ) : (
-                  <><Eye size={14} /> Réactiver le plat</>
+                  <><Eye size={14} /> RÃ©activer le plat</>
                 )}
               </Button>
             </Card>
