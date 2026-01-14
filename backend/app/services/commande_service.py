@@ -161,6 +161,10 @@ def marquer_payee(session: Session, commande_id: int, methode: str = "especes") 
     if not commande:
         return None
     
+    # Vérifier que la commande a été validée par un serveur avant de permettre le paiement
+    if commande.status == CommandeStatus.EN_ATTENTE:
+        raise ValueError("Impossible de payer une commande non validée par un serveur.")
+    
     # Mettre à jour le statut de la commande
     commande.status = CommandeStatus.PAYEE
     
