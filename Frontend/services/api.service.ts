@@ -59,12 +59,21 @@ class ApiService {
 
   async get<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { token, ...fetchOptions } = options;
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...fetchOptions,
-      method: 'GET',
-      headers: this.getHeaders(token),
-    });
-    return this.handleResponse<T>(response);
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...fetchOptions,
+        method: 'GET',
+        headers: this.getHeaders(token),
+        signal: controller.signal,
+      });
+      clearTimeout(id);
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      clearTimeout(id);
+      throw error;
+    }
   }
 
   async post<T>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<T> {
