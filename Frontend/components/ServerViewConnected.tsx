@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_CONFIG } from '../config/api.config';
 import { apiService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import { Order, OrderStatus, Table, TableStatus } from '../types';
 import { Card, Button, Badge, Modal } from './UI';
-import { LayoutGrid, ClipboardList, UserPlus, CheckCircle2, ChevronRight, Plus, Minus, Loader, RefreshCcw, LogOut, ChefHat } from 'lucide-react';
+import { LayoutGrid, ClipboardList, UserPlus, CheckCircle2, ChevronRight, Plus, Minus, Loader, RefreshCcw, LogOut, ChefHat, Bell, BellRing } from 'lucide-react';
 import { formatPrice } from '../mockData';
 
 export const ServerViewConnected: React.FC = () => {
@@ -21,6 +21,9 @@ export const ServerViewConnected: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'TABLES' | 'COMMANDES'>('TABLES');
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [hasNewPendingOrders, setHasNewPendingOrders] = useState(false);
+  const previousPendingCountRef = useRef(0);
 
   const loadingRef = React.useRef(false);
   useEffect(() => {
@@ -51,6 +54,28 @@ export const ServerViewConnected: React.FC = () => {
       setOrders(commandesData);
       setPlats(platsData);
       setCategories(categoriesData);
+
+      // Check for new pending orders
+      const currentPendingCount = commandesData.filter(
+        (o: Order) => o.statut === OrderStatus.EN_ATTENTE_VALIDATION
+      ).length;
+
+      setPendingOrdersCount(currentPendingCount);
+
+      // If there are more pending orders than before, trigger notification
+      if (currentPendingCount > previousPendingCountRef.current && previousPendingCountRef.current >= 0) {
+        setHasNewPendingOrders(true);
+        // Play notification sound
+        try {
+          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAoAEoKshpFoS0VwqNXPmWQdBTeS0NesewgAF4yyj5dvT0hxptHPmWYfBjaN0NaseQcAGY+1k5lzVEtuptDOmGYfBjaN0NaseQcA');
+          audio.volume = 0.5;
+          audio.play().catch(() => { });
+        } catch (e) { }
+        // Clear notification after 5 seconds
+        setTimeout(() => setHasNewPendingOrders(false), 5000);
+      }
+
+      previousPendingCountRef.current = currentPendingCount;
       setError(null);
     } catch (err: any) {
       console.error('Error loading data:', err);
@@ -176,6 +201,19 @@ export const ServerViewConnected: React.FC = () => {
           >
             <LogOut size={16} />
           </button>
+
+          {/* Notification Bell for Pending Orders */}
+          {pendingOrdersCount > 0 && (
+            <button
+              onClick={() => setActiveView('COMMANDES')}
+              className={`relative w-10 h-10 rounded-2xl flex items-center justify-center transition-all border ${hasNewPendingOrders ? 'bg-orange-500 text-white border-orange-600 animate-bounce' : 'bg-orange-50 text-orange-500 border-orange-100 hover:bg-orange-100'}`}
+            >
+              {hasNewPendingOrders ? <BellRing size={16} /> : <Bell size={16} />}
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                {pendingOrdersCount}
+              </span>
+            </button>
+          )}
         </div>
       </header>
 
