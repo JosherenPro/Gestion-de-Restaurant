@@ -41,12 +41,12 @@ export const ServerView: React.FC = () => {
     const newOrder: OrderDisplay = {
       id: `MAN-${Math.floor(Math.random() * 1000)}`,
       tableId: `t${selectedTable.id}`,
-      items: manualBasket.map(item => ({ 
-        id: item.id, 
+      items: manualBasket.map(item => ({
+        id: item.id,
         plat_id: item.id,
-        name: item.name, 
-        quantity: item.quantity, 
-        price: item.price 
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price
       })),
       status: OrderStatus.VALIDEE,
       timestamp: Date.now(),
@@ -74,12 +74,11 @@ export const ServerView: React.FC = () => {
               <button
                 key={table.id}
                 onClick={() => setSelectedTable(table)}
-                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${
-                  selectedTable?.id === table.id ? 'border-[#FC8A06] bg-[#FC8A06]/10 ring-2 ring-[#FC8A06]/20' :
+                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${selectedTable?.id === table.id ? 'border-[#FC8A06] bg-[#FC8A06]/10 ring-2 ring-[#FC8A06]/20' :
                   table.status === 'OCCUPIED' ? 'border-orange-500/20 bg-white/5 text-orange-400' :
-                  table.status === 'RESERVED' ? 'border-blue-500/20 bg-white/5 text-blue-400' :
-                  'border-white/10 bg-white/5 text-gray-400 hover:border-white/30'
-                }`}
+                    table.status === 'RESERVED' ? 'border-blue-500/20 bg-white/5 text-blue-400' :
+                      'border-white/10 bg-white/5 text-gray-400 hover:border-white/30'
+                  }`}
               >
                 <span className="font-black text-lg">T{table.number}</span>
                 <span className="text-[9px] font-bold opacity-60">{table.capacity} PERS.</span>
@@ -105,10 +104,10 @@ export const ServerView: React.FC = () => {
             <p className="text-gray-500 font-medium">Flux temps réel du service</p>
           </div>
           <div className="flex gap-3 items-center">
-             <div className="bg-orange-100 text-[#FC8A06] px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#FC8A06] animate-pulse"></div>
-                {orders.length} en cours
-             </div>
+            <div className="bg-orange-100 text-[#FC8A06] px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#FC8A06] animate-pulse"></div>
+              {orders.length} en cours
+            </div>
           </div>
         </header>
 
@@ -126,7 +125,7 @@ export const ServerView: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-[#03081F]">#{order.id}</h3>
-                      <p className="text-xs text-gray-400 font-bold uppercase">{new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • €{order.totalPrice.toFixed(2)}</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase">{new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {order.totalPrice.toFixed(0)} FCFA</p>
                     </div>
                   </div>
                   <Badge status={order.status} />
@@ -137,7 +136,7 @@ export const ServerView: React.FC = () => {
                     {order.items.map((item, idx) => (
                       <li key={idx} className="text-sm flex justify-between font-medium">
                         <span><span className="text-[#FC8A06] font-black mr-2">{item.quantity}x</span> {item.name}</span>
-                        <span className="text-gray-400">€{(item.price * item.quantity).toFixed(2)}</span>
+                        <span className="text-gray-400">FCFA{(item.price * item.quantity).toFixed(2)}</span>
                       </li>
                     ))}
                   </ul>
@@ -150,7 +149,7 @@ export const ServerView: React.FC = () => {
                   {order.status === OrderStatus.PRETE && (
                     <Button fullWidth onClick={() => markServed(order.id)} variant="success" className="h-12">Signaler comme servi</Button>
                   )}
-                   <Button variant="outline" className="h-12 w-12 p-0"><ChevronRight /></Button>
+                  <Button variant="outline" className="h-12 w-12 p-0"><ChevronRight /></Button>
                 </div>
               </div>
             </Card>
@@ -169,7 +168,7 @@ export const ServerView: React.FC = () => {
                   <img src={item.image} className="w-12 h-12 rounded-xl object-cover" />
                   <div>
                     <p className="font-bold text-sm">{item.name}</p>
-                    <p className="text-xs text-[#FC8A06] font-bold">€{item.price.toFixed(2)}</p>
+                    <p className="text-xs text-[#FC8A06] font-bold">FCFA{item.price.toFixed(2)}</p>
                   </div>
                 </div>
                 <button onClick={() => addToManual(item)} className="p-2 bg-white rounded-xl shadow-sm hover:bg-[#FC8A06] hover:text-white transition-all">
@@ -180,21 +179,21 @@ export const ServerView: React.FC = () => {
           </div>
 
           <div className="border-t border-dashed pt-4">
-             <h4 className="text-xs font-black text-gray-400 uppercase mb-3">Sélection en cours</h4>
-             <div className="space-y-2 mb-6">
-               {manualBasket.length === 0 ? <p className="text-center text-gray-300 text-sm py-4">Panier vide</p> : manualBasket.map(item => (
-                 <div key={item.id} className="flex items-center justify-between">
-                    <span className="text-sm font-bold"><span className="text-[#FC8A06]">{item.quantity}x</span> {item.name}</span>
-                    <div className="flex items-center gap-3">
-                       <button onClick={() => removeFromManual(item.id)} className="text-gray-400 hover:text-red-500"><Minus size={14} /></button>
-                       <span className="text-sm font-black">€{(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                 </div>
-               ))}
-             </div>
-             <Button fullWidth onClick={createManualOrder} variant="primary" className="h-14" disabled={manualBasket.length === 0}>
-               Envoyer en cuisine (€{manualBasket.reduce((a, b) => a + b.price * b.quantity, 0).toFixed(2)})
-             </Button>
+            <h4 className="text-xs font-black text-gray-400 uppercase mb-3">Sélection en cours</h4>
+            <div className="space-y-2 mb-6">
+              {manualBasket.length === 0 ? <p className="text-center text-gray-300 text-sm py-4">Panier vide</p> : manualBasket.map(item => (
+                <div key={item.id} className="flex items-center justify-between">
+                  <span className="text-sm font-bold"><span className="text-[#FC8A06]">{item.quantity}x</span> {item.name}</span>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => removeFromManual(item.id)} className="text-gray-400 hover:text-red-500"><Minus size={14} /></button>
+                    <span className="text-sm font-black">FCFA{(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button fullWidth onClick={createManualOrder} variant="primary" className="h-14" disabled={manualBasket.length === 0}>
+              Envoyer en cuisine ({manualBasket.reduce((a, b) => a + b.price * b.quantity, 0).toFixed(0)} FCFA)
+            </Button>
           </div>
         </div>
       </Modal>

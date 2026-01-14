@@ -1,31 +1,32 @@
 
 
 export enum UserRole {
-  CLIENT = 'CLIENT',
-  SERVEUR = 'SERVEUR',
-  CUISINIER = 'CUISINIER',
-  GERANT = 'GERANT'
+  CLIENT = 'client',
+  SERVEUR = 'serveur',
+  CUISINIER = 'cuisinier',
+  GERANT = 'gerant'
 }
 
 export enum OrderStatus {
-  EN_ATTENTE_VALIDATION = 'EN_ATTENTE_VALIDATION',
-  VALIDEE = 'VALIDEE',
-  EN_COURS = 'EN_COURS',
-  PRETE = 'PRETE',
-  SERVIE = 'SERVIE',
-  PAYEE = 'PAYEE',
-  ANNULEE = 'ANNULEE'
+  EN_ATTENTE_VALIDATION = 'en_attente',
+  VALIDEE = 'approuvee',
+  EN_COURS = 'en_cours',
+  PRETE = 'prete',
+  SERVIE = 'servie',
+  PAYEE = 'payee',
+  ANNULEE = 'annulee',
+  RECEPTIONNEE = 'receptionnee'
 }
 
 export enum TableStatus {
-  LIBRE = 'LIBRE',
-  OCCUPEE = 'OCCUPEE',
-  RESERVEE = 'RESERVEE'
+  LIBRE = 'libre',
+  OCCUPEE = 'occupee',
+  RESERVEE = 'reservee'
 }
 
 export enum TypeCommande {
-  SUR_PLACE = 'SUR_PLACE',
-  A_EMPORTER = 'A_EMPORTER'
+  SUR_PLACE = 'sur_place',
+  A_EMPORTER = 'a_emporter'
 }
 
 export interface Categorie {
@@ -110,14 +111,30 @@ export interface Stats {
   chiffre_affaires_total: number;
   nombre_commandes: number;
   note_moyenne: number;
-  nombre_clients: number;
+  nombre_clients?: number;
 }
 
 export interface TopPlat {
   plat_id: number;
-  nom_plat: string;
+  nom: string;
+  nom_plat?: string;
   quantite_vendue: number;
-  chiffre_affaires: number;
+  chiffre_affaires?: number;
+}
+
+export interface RevenueByPeriod {
+  periode: string;
+  revenu: number;
+}
+
+export interface Personnel {
+  id: number;
+  utilisateur_id: number;
+  nom?: string;
+  prenom?: string;
+  email?: string;
+  telephone?: string;
+  role?: string;
 }
 
 export interface Menu {

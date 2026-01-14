@@ -1,23 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { MenuItem, OrderItem, OrderStatus, Order, Categorie, TypeCommande, Menu } from '../types';
+import { MenuItem, OrderItem, OrderStatus, Order, Categorie, TypeCommande, Menu, Reservation } from '../types';
 import { Button, Card, Modal } from './UI';
-import { ShoppingBasket, Search, Plus, Minus, CheckCircle, Calendar, Star, MessageSquare, Loader, Sparkles, ChefHat, Clock, Award, TrendingUp, Heart, X, UtensilsCrossed } from 'lucide-react';
+import { ShoppingBasket, Search, Plus, Minus, CheckCircle, Calendar, Star, MessageSquare, Loader, Sparkles, ChefHat, Clock, Award, TrendingUp, Heart, X, UtensilsCrossed, CreditCard, Wallet, Smartphone, Receipt, XCircle, LogOut, User, History, Edit, Trash2, Home, Utensils } from 'lucide-react';
 import { useMenu, useMenus } from '../hooks/useApi';
 import { apiService } from '../services/api.service';
 import { formatPrice } from '../mockData';
+import { ClientAuthModal } from './ClientAuthModal';
+import { BottomTabBar } from './BottomTabBar';
 
 export const ClientView: React.FC = () => {
-const { categories, plats, loading } = useMenu();
-const { menus, loading: menusLoading } = useMenus();
-const [activeCategory, setActiveCategory] = useState<number | 'ALL'>('ALL');
-const [basket, setBasket] = useState<OrderItem[]>([]);
-const [isBasketOpen, setIsBasketOpen] = useState(false);
-const [isReservationOpen, setIsReservationOpen] = useState(false);
-const [isReviewOpen, setIsReviewOpen] = useState(false);
-const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
-const [step, setStep] = useState<'HOME' | 'MENU' | 'MENUS_LIST' | 'TRACKING'>('HOME');
-const [searchTerm, setSearchTerm] = useState('');
-const [orderError, setOrderError] = useState<string | null>(null);
+  const { categories, plats, loading } = useMenu();
+  const { menus, loading: menusLoading } = useMenus();
+  const [activeCategory, setActiveCategory] = useState<number | 'ALL'>('ALL');
+  const [basket, setBasket] = useState<OrderItem[]>(() => {
+    const saved = localStorage.getItem('client_basket');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isBasketOpen, setIsBasketOpen] = useState(false);
+  const [isReservationOpen, setIsReservationOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [step, setStep] = useState<'HOME' | 'MENU' | 'MENUS_LIST' | 'TRACKING'>('HOME');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   // Reservation state
   const [reservationData, setReservationData] = useState({
@@ -27,8 +32,80 @@ const [orderError, setOrderError] = useState<string | null>(null);
   });
   const [reservationError, setReservationError] = useState<string | null>(null);
   const [reservationSuccess, setReservationSuccess] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<any>(null);
 
   // Simple guest mode - no auth required
+
+  // Authentication state
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [clientToken, setClientToken] = useState<string | null>(localStorage.getItem('client_token'));
+  const [clientData, setClientData] = useState<any>(null);
+
+  // Payment state
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('card');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  // Addition/Bill state
+  const [isAdditionOpen, setIsAdditionOpen] = useState(false);
+  const [additionData, setAdditionData] = useState<any>(null);
+
+  // Cancel order state
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  // Review state
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  // My Reservations state
+  const [isMyReservationsOpen, setIsMyReservationsOpen] = useState(false);
+  const [myReservations, setMyReservations] = useState<Reservation[]>([]);
+
+  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  // Advanced UX State
+  const [selectedPlat, setSelectedPlat] = useState<MenuItem | null>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const toggleFavorite = (platId: number) => {
+    setFavorites(prev => {
+      const isFav = prev.includes(platId);
+      const next = isFav ? prev.filter(id => id !== platId) : [...prev, platId];
+      localStorage.setItem('client_favorites', JSON.stringify(next));
+      showToast(isFav ? 'Retir√© des favoris' : 'Ajout√© aux favoris', isFav ? 'info' : 'success');
+      return next;
+    });
+  };
+
+  const fetchMyOrders = async () => {
+    try {
+      const orders = await apiService.getCommandes(clientToken || undefined);
+      // Filter by current client if clientData exists
+      const filtered = clientData
+        ? orders.filter(o => o.client_id === clientData.id)
+        : orders.filter(o => o.client_id === CLIENT_ID);
+      setMyOrders(filtered);
+      setIsMyOrdersOpen(true);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+    }
+  };
+
+  const viewOrderDetails = (order: Order) => {
+    setCurrentOrder(order);
+    setStep('TRACKING');
+    setIsMyOrdersOpen(false);
+  };
   const CLIENT_ID = 1;
   const TABLE_ID = 1;
 
@@ -36,9 +113,9 @@ const [orderError, setOrderError] = useState<string | null>(null);
     setBasket(prev => {
       const existing = prev.find(i => i.plat_id === item.id);
       if (existing) {
-        return prev.map(i => 
-          i.plat_id === item.id 
-            ? { ...i, quantite: i.quantite + 1 } 
+        return prev.map(i =>
+          i.plat_id === item.id
+            ? { ...i, quantite: i.quantite + 1 }
             : i
         );
       }
@@ -55,9 +132,9 @@ const [orderError, setOrderError] = useState<string | null>(null);
     setBasket(prev => {
       const existing = prev.find(i => i.plat_id === platId);
       if (existing && existing.quantite > 1) {
-        return prev.map(i => 
-          i.plat_id === platId 
-            ? { ...i, quantite: i.quantite - 1 } 
+        return prev.map(i =>
+          i.plat_id === platId
+            ? { ...i, quantite: i.quantite - 1 }
             : i
         );
       }
@@ -65,15 +142,15 @@ const [orderError, setOrderError] = useState<string | null>(null);
     });
   };
 
-  const totalInCentimes = basket.reduce((acc, item) => 
+  const totalInCentimes = basket.reduce((acc, item) =>
     acc + (item.prix_unitaire * item.quantite), 0
   );
 
   const placeOrder = async () => {
     try {
       setOrderError(null);
-      console.log('?? CrÈation de la commande...');
-      
+      console.log('?? Cr√©ation de la commande...');
+
       // Create the order without auth
       const orderData = {
         client_id: CLIENT_ID,
@@ -82,10 +159,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
         montant_total: totalInCentimes,
         notes: 'Commande client sans authentification'
       };
-      
+
       const newOrder = await apiService.createCommande(orderData);
-      console.log('? Commande crÈÈe:', newOrder);
-      
+      console.log('? Commande cr√©√©e:', newOrder);
+
       // Add each item as a line
       for (const item of basket) {
         await apiService.addLigneCommande(newOrder.id, {
@@ -96,15 +173,15 @@ const [orderError, setOrderError] = useState<string | null>(null);
           notes_speciales: item.notes_speciales || ''
         });
       }
-      
-      console.log('? Commande envoyÈe aux cuisiniers!');
+
+      console.log('? Commande envoy√©e aux cuisiniers!');
       setCurrentOrder(newOrder);
       setBasket([]);
       setIsBasketOpen(false);
       setStep('TRACKING');
     } catch (error: any) {
       console.error('? Erreur commande:', error);
-      setOrderError(error.message || 'Erreur lors de la crÈation de la commande');
+      setOrderError(error.message || 'Erreur lors de la cr√©ation de la commande');
     }
   };
 
@@ -113,65 +190,200 @@ const [orderError, setOrderError] = useState<string | null>(null);
     try {
       setReservationError(null);
       setReservationSuccess(false);
-      
+
       if (!reservationData.dateReservation) {
-        setReservationError('Veuillez sÈlectionner une date et une heure');
+        setReservationError('Veuillez s√©lectionner une date et une heure');
         return;
       }
 
-      console.log('?? CrÈation de la rÈservation...');
-      
-      // Convert local datetime to ISO format for API
       const reservationDateTime = new Date(reservationData.dateReservation).toISOString();
-      
       const reservationPayload = {
-        client_id: CLIENT_ID,
+        client_id: clientData?.id || CLIENT_ID,
         table_id: TABLE_ID,
         date_reservation: reservationDateTime,
         nombre_personnes: reservationData.nbPersonnes,
         notes: reservationData.commentaire || undefined
       };
-      
-      await apiService.createReservation(reservationPayload);
-      console.log('? RÈservation crÈÈe avec succËs!');
-      
+
+      if (selectedReservation) {
+        await apiService.updateReservation(selectedReservation.id, reservationPayload, clientToken || '');
+      } else {
+        await apiService.createReservation(reservationPayload, clientToken || undefined);
+      }
+
       setReservationSuccess(true);
-      
-      // Reset form after 2 seconds and close modal
+
       setTimeout(() => {
-        setReservationData({
-          nbPersonnes: 2,
-          dateReservation: '',
-          commentaire: ''
-        });
         setReservationSuccess(false);
         setIsReservationOpen(false);
+        setSelectedReservation(null);
+        setReservationData({ nbPersonnes: 2, dateReservation: '', commentaire: '' });
       }, 2000);
-    } catch (error: any) {
-      console.error('? Erreur rÈservation:', error);
-      // Better error message extraction
-      let errorMessage = 'Erreur lors de la crÈation de la rÈservation';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error.detail) {
-        errorMessage = error.detail;
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      }
-      
-      setReservationError(errorMessage);
+    } catch (err: any) {
+      setReservationError(err.message || 'Erreur lors de la r√©servation');
     }
   };
-
   const filteredPlats = plats.filter(plat => {
     const matchesCategory = activeCategory === 'ALL' || plat.categorie_id === activeCategory;
     const matchesSearch = plat.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (plat.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+      (plat.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     return matchesCategory && matchesSearch && plat.disponible;
   });
+
+
+  // Load user data on mount if token exists
+  useEffect(() => {
+    const loadUserData = async () => {
+      const token = localStorage.getItem('client_token');
+      if (token) {
+        try {
+          const userData = await apiService.getCurrentUser(token);
+          setClientData(userData);
+          setClientToken(token);
+        } catch (err) {
+          localStorage.removeItem('client_token');
+          setClientToken(null);
+        }
+      }
+    };
+    loadUserData();
+  }, []);
+
+  // Handle auth success
+  const handleAuthSuccess = (token: string, userData: any) => {
+    setClientToken(token);
+    setClientData(userData);
+    setIsAuthOpen(false);
+  };
+
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem('client_token');
+    setClientToken(null);
+    setClientData(null);
+  };
+
+  // Save basket to localStorage
+  useEffect(() => {
+    localStorage.setItem('client_basket', JSON.stringify(basket));
+  }, [basket]);
+
+  // Fetch Addition
+  const fetchAddition = async () => {
+    if (!currentOrder) return;
+    try {
+      const data = await apiService.getAddition(currentOrder.id, clientToken || undefined);
+      setAdditionData(data);
+      setIsAdditionOpen(true);
+    } catch (err) {
+      console.error('Error fetching addition:', err);
+    }
+  };
+
+  // Process Payment
+  const processPayment = async () => {
+    if (!currentOrder) return;
+    setPaymentLoading(true);
+    try {
+      await apiService.payerCommande(currentOrder.id, paymentMethod, clientToken || undefined);
+      setPaymentSuccess(true);
+      setCurrentOrder({ ...currentOrder, statut: OrderStatus.PAYEE });
+      setTimeout(() => {
+        setIsPaymentOpen(false);
+        setPaymentSuccess(false);
+        setStep('HOME');
+      }, 2000);
+    } catch (err) {
+      console.error('Payment error:', err);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Cancel Order
+  const cancelOrder = async () => {
+    if (!currentOrder) return;
+    setCancelLoading(true);
+    try {
+      // Note: Backend might need a cancel endpoint - using status update for now
+      setCurrentOrder({ ...currentOrder, statut: OrderStatus.ANNULEE });
+      setIsCancelOpen(false);
+      setTimeout(() => setStep('HOME'), 1500);
+    } catch (err) {
+      console.error('Cancel error:', err);
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  // Confirm Reception
+  const confirmReception = async () => {
+    if (!currentOrder) return;
+    try {
+      await apiService.receptionnerCommande(currentOrder.id, clientToken || undefined);
+      setCurrentOrder({ ...currentOrder, statut: OrderStatus.RECEPTIONNEE });
+      setIsReviewOpen(true);
+    } catch (err) {
+      console.error('Reception error:', err);
+    }
+  };
+
+  // Submit Review
+  const submitReview = async () => {
+    if (!currentOrder || reviewRating === 0) return;
+    setReviewLoading(true);
+    try {
+      await apiService.createAvis({
+        client_id: clientData?.id || CLIENT_ID,
+        commande_id: currentOrder.id,
+        note: reviewRating,
+        commentaire: reviewComment || undefined
+      }, clientToken || undefined);
+      setReviewSuccess(true);
+      setTimeout(() => {
+        setIsReviewOpen(false);
+        setReviewSuccess(false);
+        setReviewRating(0);
+        setReviewComment('');
+      }, 2000);
+    } catch (err) {
+      console.error('Review error:', err);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  // Fetch reservations
+  const fetchMyReservations = async () => {
+    try {
+      const reservations = await apiService.getReservations(clientToken || undefined);
+      setMyReservations(reservations);
+      setIsMyReservationsOpen(true);
+    } catch (err) {
+      console.error('Error fetching reservations:', err);
+    }
+  };
+  // Edit reservation
+  const openEditReservation = (res: any) => {
+    setReservationData({
+      nbPersonnes: res.nombre_personnes,
+      dateReservation: new Date(res.date_reservation).toISOString().slice(0, 16),
+      commentaire: res.notes || ''
+    });
+    setSelectedReservation(res);
+    setIsMyReservationsOpen(false);
+    setIsReservationOpen(true);
+  };
+
+  // Cancel reservation
+  const cancelReservation = async (id: number) => {
+    try {
+      await apiService.annulerReservation(id, clientToken || '');
+      setMyReservations(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      console.error('Error canceling reservation:', err);
+    }
+  };
 
   const getImageUrl = (imageUrl?: string) => {
     if (imageUrl) {
@@ -202,23 +414,36 @@ const [orderError, setOrderError] = useState<string | null>(null);
             </div>
             <div className="flex flex-col items-start">
               <span className="font-black text-lg tracking-tight text-[#03081F]">RestoDeluxe</span>
-              <span className="text-[9px] font-bold text-[#FC8A06] uppercase tracking-widest">ExpÈrience Premium</span>
+              <span className="text-[9px] font-bold text-[#FC8A06] uppercase tracking-widest">Exp√©rience Premium</span>
             </div>
           </button>
-          
-          {step === 'MENU' && (
-            <button 
-              onClick={() => setIsBasketOpen(true)} 
-              className="relative p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg shadow-green-500/30 hover:scale-110 transition-all active:scale-95"
-            >
-              <ShoppingBasket className="w-6 h-6 text-white" />
-              {basket.length > 0 && (
-                <div className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                  <span className="text-white text-xs font-black">{basket.reduce((a, b) => a + b.quantite, 0)}</span>
+
+          <div className="flex items-center gap-2">
+            {/* Auth Button */}
+            {clientToken ? (
+              <div className="flex items-center gap-2">
+                <div className="bg-gray-100 rounded-2xl px-3 py-2 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#FC8A06]" />
+                  <span className="text-xs font-bold text-[#03081F] truncate max-w-[80px]">
+                    {clientData?.prenom || 'Client'}
+                  </span>
                 </div>
-              )}
-            </button>
-          )}
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsAuthOpen(true)}
+                className="bg-[#03081F] text-white rounded-2xl px-4 py-2 text-xs font-bold hover:bg-gray-800 transition-all"
+              >
+                Connexion
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -228,10 +453,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
           <div className="px-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Hero Banner with Parallax Effect */}
             <div className="relative h-72 rounded-[2.5rem] overflow-hidden shadow-2xl group">
-              <img 
-                src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80" 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                alt="Restaurant" 
+              <img
+                src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                alt="Restaurant"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
               <div className="absolute bottom-8 left-8 right-8">
@@ -244,7 +469,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 </h1>
                 <p className="text-white/80 text-sm font-medium flex items-center gap-2">
                   <Award className="w-4 h-4" />
-                  Cuisine gastronomique ï Service premium
+                  Cuisine gastronomique ‚Ä¢ Service premium
                 </p>
               </div>
             </div>
@@ -257,10 +482,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=400&q=80'
               ].map((img, i) => (
                 <div key={i} className="relative h-32 rounded-[1.5rem] overflow-hidden shadow-lg group cursor-pointer">
-                  <img 
-                    src={img} 
-                    className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700" 
-                    alt={`Food ${i + 1}`} 
+                  <img
+                    src={img}
+                    className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
+                    alt={`Food ${i + 1}`}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                     <Sparkles className="w-5 h-5 text-white" />
@@ -316,40 +541,62 @@ const [orderError, setOrderError] = useState<string | null>(null);
                       <UtensilsCrossed className="w-7 h-7 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-lg tracking-tight">DÈcouvrir les Menus</p>
-                      <p className="text-xs text-white/80 font-medium">Formules complËtes ‡ prix fixe</p>
+                      <p className="font-black text-lg tracking-tight">D√©couvrir les Menus</p>
+                      <p className="text-xs text-white/80 font-medium">Formules compl√®tes √† prix fixe</p>
                     </div>
                   </div>
                   <Plus className="w-6 h-6 text-white" />
                 </div>
               </button>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setIsReservationOpen(true)}
-                  className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
-                >
-                  <Calendar className="w-6 h-6 text-[#FC8A06] mb-2" />
-                  <p className="font-bold text-sm text-[#03081F]">RÈserver</p>
-                  <p className="text-[10px] text-gray-400 font-medium">Une table</p>
-                </button>
-                
-                <button
-                  onClick={() => setIsReviewOpen(true)}
-                  className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
-                >
-                  <MessageSquare className="w-6 h-6 text-purple-500 mb-2" />
-                  <p className="font-bold text-sm text-[#03081F]">Avis</p>
-                  <p className="text-[10px] text-gray-400 font-medium">Votre expÈrience</p>
-                </button>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setIsReservationOpen(true)}
+                className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+              >
+                <Calendar className="w-6 h-6 text-[#FC8A06] mb-2" />
+                <p className="font-bold text-sm text-[#03081F]">R√©server</p>
+                <p className="text-[10px] text-gray-400 font-medium">Une table</p>
+              </button>
+
+              <button
+                onClick={() => setIsReviewOpen(true)}
+                className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+              >
+                <Star className="w-6 h-6 text-yellow-400 mb-2" />
+                <p className="font-bold text-sm text-[#03081F]">Avis</p>
+                <p className="text-[10px] text-gray-400 font-medium">Votre exp√©rience</p>
+              </button>
+
+              {clientToken && (
+                <>
+                  <button
+                    onClick={fetchMyReservations}
+                    className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+                  >
+                    <History className="w-6 h-6 text-blue-500 mb-2" />
+                    <p className="font-bold text-sm text-[#03081F]">Mes R√©sas</p>
+                    <p className="text-[10px] text-gray-400 font-medium">Historique</p>
+                  </button>
+
+                  <button
+                    onClick={fetchMyOrders}
+                    className="bg-[#03081F] rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 text-white"
+                  >
+                    <ShoppingBasket className="w-6 h-6 text-[#FC8A06] mb-2" />
+                    <p className="font-bold text-sm">Mes Commandes</p>
+                    <p className="text-[10px] text-gray-400 font-medium">Historique</p>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Trust Badges */}
             <Card className="p-5 bg-gradient-to-br from-gray-50 to-white border-none shadow-sm">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Pourquoi nous choisir</p>
               <div className="space-y-2">
-                {['IngrÈdients frais & locaux', 'Service impeccable', 'Ambiance chaleureuse'].map((item, i) => (
+                {['Ingr√©dients frais & locaux', 'Service impeccable', 'Ambiance chaleureuse'].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                     <span className="text-sm text-gray-700 font-medium">{item}</span>
@@ -368,11 +615,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
               <div className="flex gap-3 pb-2">
                 <button
                   onClick={() => setActiveCategory('ALL')}
-                  className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${
-                    activeCategory === 'ALL' 
-                      ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105' 
-                      : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
-                  }`}
+                  className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${activeCategory === 'ALL'
+                    ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105'
+                    : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
+                    }`}
                 >
                   ? Tous les plats
                 </button>
@@ -380,11 +626,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${
-                      activeCategory === cat.id 
-                        ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105' 
-                        : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
-                    }`}
+                    className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${activeCategory === cat.id
+                      ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105'
+                      : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
+                      }`}
                   >
                     {cat.nom}
                   </button>
@@ -396,12 +641,12 @@ const [orderError, setOrderError] = useState<string | null>(null);
             <div className="px-4">
               <div className="relative group">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-[#FC8A06] transition-colors" />
-                <input 
-                  type="text" 
-                  placeholder="Rechercher un dÈlice..." 
+                <input
+                  type="text"
+                  placeholder="Rechercher un d√©lice..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border-2 border-gray-100 rounded-[1.5rem] py-4 pl-14 pr-4 shadow-lg focus:border-[#FC8A06] focus:shadow-xl outline-none font-medium transition-all" 
+                  className="w-full bg-white border-2 border-gray-100 rounded-[1.5rem] py-4 pl-14 pr-4 shadow-lg focus:border-[#FC8A06] focus:shadow-xl outline-none font-medium transition-all"
                 />
               </div>
             </div>
@@ -413,26 +658,27 @@ const [orderError, setOrderError] = useState<string | null>(null);
                   <div className="w-20 h-20 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
                     <Search className="w-10 h-10 text-gray-300" />
                   </div>
-                  <p className="text-gray-400 font-medium">Aucun plat trouvÈ</p>
+                  <p className="text-gray-400 font-medium">Aucun plat trouv√©</p>
                 </div>
               ) : (
                 filteredPlats.map((plat, index) => (
-                  <Card 
-                    key={plat.id} 
+                  <Card
+                    key={plat.id}
+                    onClick={() => setSelectedPlat(plat)}
                     className="p-0 border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white rounded-[2rem] overflow-hidden group cursor-pointer"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div className="flex gap-0">
                       {/* Image Section */}
                       <div className="relative w-32 h-32 flex-shrink-0 overflow-hidden">
-                        <img 
-                          src={getImageUrl(plat.image_url)} 
-                          className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700" 
-                          alt={plat.nom} 
+                        <img
+                          src={getImageUrl(plat.image_url)}
+                          className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
+                          alt={plat.nom}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         {/* Add to cart button on image */}
-                        <button 
+                        <button
                           onClick={() => addToBasket(plat)}
                           className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-[0.8rem] shadow-lg flex items-center justify-center text-[#FC8A06] hover:bg-[#FC8A06] hover:text-white transition-all hover:scale-110 active:scale-95 z-10"
                         >
@@ -450,13 +696,13 @@ const [orderError, setOrderError] = useState<string | null>(null);
                             <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 hover:fill-red-500 transition-all cursor-pointer flex-shrink-0" />
                           </div>
                           <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
-                            {plat.description || 'Un dÈlicieux plat prÈparÈ avec soin par nos chefs'}
+                            {plat.description || 'Un d√©licieux plat pr√©par√© avec soin par nos chefs'}
                           </p>
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-black text-[#FC8A06]">Ä{formatPrice(plat.prix)}</span>
+                            <span className="text-2xl font-black text-[#FC8A06]">{formatPrice(plat.prix)} FCFA</span>
                           </div>
                           <div className="flex items-center gap-1 text-yellow-400">
                             <Star className="w-3 h-3 fill-current" />
@@ -476,14 +722,14 @@ const [orderError, setOrderError] = useState<string | null>(null);
         {step === 'MENUS_LIST' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="px-4">
-              <button 
+              <button
                 onClick={() => setStep('HOME')}
                 className="text-gray-500 hover:text-[#FC8A06] font-medium text-sm flex items-center gap-2 mb-4"
               >
-                ? Retour ‡ l'accueil
+                ? Retour √† l'accueil
               </button>
               <h2 className="text-3xl font-black text-[#03081F] mb-2">Nos Menus</h2>
-              <p className="text-gray-500">DÈcouvrez nos formules complËtes ‡ prix fixe</p>
+              <p className="text-gray-500">D√©couvrez nos formules compl√®tes √† prix fixe</p>
             </div>
 
             {menusLoading ? (
@@ -500,8 +746,8 @@ const [orderError, setOrderError] = useState<string | null>(null);
             ) : (
               <div className="px-4 space-y-4">
                 {menus.filter((menu: Menu) => menu.actif).map((menu: Menu, index: number) => (
-                  <Card 
-                    key={menu.id} 
+                  <Card
+                    key={menu.id}
                     className="p-0 border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-gradient-to-br from-white to-purple-50 rounded-[2rem] overflow-hidden group cursor-pointer"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
@@ -519,14 +765,14 @@ const [orderError, setOrderError] = useState<string | null>(null);
                               </h3>
                               <div className="flex items-center gap-2 mt-1">
                                 <Award className="w-4 h-4 text-yellow-400" />
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Formule complËte</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Formule compl√®te</span>
                               </div>
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-purple-600">Ä{formatPrice(menu.prix_fixe)}</span>
+                            <span className="text-3xl font-black text-purple-600">{formatPrice(menu.prix_fixe)} FCFA</span>
                           </div>
                           <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix fixe</span>
                         </div>
@@ -551,7 +797,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                             )}
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-500 italic">Menu personnalisable avec notre sÈlection</p>
+                          <p className="text-sm text-gray-500 italic">Menu personnalisable avec notre s√©lection</p>
                         )}
                       </div>
 
@@ -595,10 +841,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
                           </div>
                         </div>
                         <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider bg-green-50 px-3 py-1 rounded-full">
-                          …conomisez Ä{formatPrice(menu.contenus ? menu.contenus.reduce((acc: number, c: any) => {
+                          √âconomisez {formatPrice(menu.contenus ? menu.contenus.reduce((acc: number, c: any) => {
                             const plat = plats.find(p => p.id === c.plat_id);
                             return acc + (plat?.prix || 0);
-                          }, 0) - menu.prix_fixe : 0)}
+                          }, 0) - menu.prix_fixe : 0)} FCFA
                         </span>
                       </div>
                     </div>
@@ -624,7 +870,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
               </div>
 
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-black text-[#03081F] mb-2">Commande ConfirmÈe !</h2>
+                <h2 className="text-2xl font-black text-[#03081F] mb-2">Commande Confirm√©e !</h2>
                 <p className="text-sm text-gray-500 font-medium">Commande #{currentOrder.id}</p>
               </div>
 
@@ -632,48 +878,47 @@ const [orderError, setOrderError] = useState<string | null>(null);
               <div className="relative py-6 mb-8">
                 {/* Progress Line */}
                 <div className="absolute left-[2.4rem] top-12 bottom-12 w-1 bg-gradient-to-b from-[#FC8A06] via-orange-400 to-gray-200 rounded-full"></div>
-                
+
                 <div className="space-y-8">
                   {[
-                    { 
-                      status: OrderStatus.EN_ATTENTE_VALIDATION, 
-                      label: 'En attente', 
-                      sublabel: 'Commande reÁue',
+                    {
+                      status: OrderStatus.EN_ATTENTE_VALIDATION,
+                      label: 'En attente',
+                      sublabel: 'Commande re√ßue',
                       icon: Clock,
-                      active: currentOrder.statut === OrderStatus.EN_ATTENTE_VALIDATION 
+                      active: currentOrder.statut === OrderStatus.EN_ATTENTE_VALIDATION
                     },
-                    { 
-                      status: OrderStatus.VALIDEE, 
-                      label: 'ValidÈe', 
-                      sublabel: 'Par notre Èquipe',
+                    {
+                      status: OrderStatus.VALIDEE,
+                      label: 'Valid√©e',
+                      sublabel: 'Par notre √©quipe',
                       icon: CheckCircle,
-                      active: [OrderStatus.VALIDEE, OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
+                      active: [OrderStatus.VALIDEE, OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut)
                     },
-                    { 
-                      status: OrderStatus.EN_COURS, 
-                      label: 'En prÈparation', 
+                    {
+                      status: OrderStatus.EN_COURS,
+                      label: 'En pr√©paration',
                       sublabel: 'Nos chefs au travail',
                       icon: ChefHat,
-                      active: [OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
+                      active: [OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut)
                     },
-                    { 
-                      status: OrderStatus.PRETE, 
-                      label: 'PrÍt !', 
-                      sublabel: 'Bonne dÈgustation',
+                    {
+                      status: OrderStatus.PRETE,
+                      label: 'Pr√™t !',
+                      sublabel: 'Bonne d√©gustation',
                       icon: Sparkles,
-                      active: [OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut) 
+                      active: [OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut)
                     },
                   ].map((s, idx) => (
                     <div key={idx} className="flex items-center gap-5 relative">
                       {/* Icon */}
-                      <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-500 ${
-                        s.active 
-                          ? 'bg-gradient-to-br from-[#FC8A06] to-orange-600 shadow-orange-500/50 scale-110' 
-                          : 'bg-white shadow-gray-200'
-                      }`}>
+                      <div className={`relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-500 ${s.active
+                        ? 'bg-gradient-to-br from-[#FC8A06] to-orange-600 shadow-orange-500/50 scale-110'
+                        : 'bg-white shadow-gray-200'
+                        }`}>
                         <s.icon className={`w-6 h-6 ${s.active ? 'text-white' : 'text-gray-300'}`} />
                       </div>
-                      
+
                       {/* Content */}
                       <div className="flex-1">
                         <p className={`font-black text-base transition-all ${s.active ? 'text-[#03081F]' : 'text-gray-400'}`}>
@@ -700,17 +945,70 @@ const [orderError, setOrderError] = useState<string | null>(null);
               <div className="pt-6 border-t-2 border-dashed border-gray-200 space-y-4">
                 <div className="bg-white rounded-[1.5rem] p-5 shadow-lg">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total ‡ rÈgler</span>
-                    <span className="text-3xl font-black text-[#FC8A06]">Ä{formatPrice(currentOrder.montant_total)}</span>
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total √† r√©gler</span>
+                    <span className="text-3xl font-black text-[#FC8A06]">{formatPrice(currentOrder.montant_total)} FCFA</span>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setStep('HOME')}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold"
-                >
-                  Retour ‡ l'accueil
-                </button>
+                {/* Action Buttons based on order status */}
+                <div className="space-y-3">
+                  {/* View Addition */}
+                  <button
+                    onClick={fetchAddition}
+                    className="w-full bg-white border-2 border-gray-200 text-[#03081F] rounded-[1.5rem] p-4 font-bold flex items-center justify-center gap-3 hover:border-[#FC8A06] transition-all"
+                  >
+                    <Receipt className="w-5 h-5 text-[#FC8A06]" />
+                    Voir l'addition
+                  </button>
+
+                  {/* Cancel Order - only before EN_COURS */}
+                  {[OrderStatus.EN_ATTENTE_VALIDATION, OrderStatus.VALIDEE].includes(currentOrder.statut) && (
+                    <button
+                      onClick={() => setIsCancelOpen(true)}
+                      className="w-full bg-red-50 border-2 border-red-200 text-red-600 rounded-[1.5rem] p-4 font-bold flex items-center justify-center gap-3 hover:bg-red-100 transition-all"
+                    >
+                      <XCircle className="w-5 h-5" />
+                      Annuler la commande
+                    </button>
+                  )}
+
+                  {/* Confirm Reception - only when SERVIE */}
+                  {currentOrder.statut === OrderStatus.SERVIE && (
+                    <button
+                      onClick={confirmReception}
+                      className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-[1.5rem] p-5 shadow-xl font-bold flex items-center justify-center gap-3"
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                      J'ai re√ßu ma commande
+                    </button>
+                  )}
+
+                  {/* Pay Button - main action */}
+                  {currentOrder.statut !== OrderStatus.PAYEE && currentOrder.statut !== OrderStatus.ANNULEE && (
+                    <button
+                      onClick={() => setIsPaymentOpen(true)}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold flex items-center justify-center gap-3"
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      Payer maintenant
+                    </button>
+                  )}
+
+                  {/* Paid confirmation */}
+                  {currentOrder.statut === OrderStatus.PAYEE && (
+                    <div className="w-full bg-green-50 border-2 border-green-200 text-green-700 rounded-[1.5rem] p-5 font-bold flex items-center justify-center gap-3">
+                      <CheckCircle className="w-5 h-5" />
+                      Commande pay√©e - Merci !
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setStep('HOME')}
+                    className="w-full text-gray-500 hover:text-[#03081F] py-3 font-bold transition-all"
+                  >
+                    Retour √† l'accueil
+                  </button>
+                </div>
               </div>
             </Card>
           </div>
@@ -726,7 +1024,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
               <h2 className="text-2xl font-black text-[#03081F]">Mon Panier</h2>
               <p className="text-sm text-gray-500 font-medium">{basket.length} article{basket.length > 1 ? 's' : ''}</p>
             </div>
-            <button 
+            <button
               onClick={() => setIsBasketOpen(false)}
               className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all"
             >
@@ -766,19 +1064,19 @@ const [orderError, setOrderError] = useState<string | null>(null);
                       {/* Item Info */}
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-[#03081F] truncate">{item.plat?.nom}</p>
-                        <p className="text-xs text-gray-500 font-medium">Ä{formatPrice(item.prix_unitaire)} ◊ {item.quantite}</p>
+                        <p className="text-xs text-gray-500 font-medium">{formatPrice(item.prix_unitaire)} FCFA √ó {item.quantite}</p>
                       </div>
 
                       {/* Controls */}
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        <button 
-                          onClick={() => removeFromBasket(item.plat_id)} 
+                        <button
+                          onClick={() => removeFromBasket(item.plat_id)}
                           className="w-9 h-9 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all active:scale-90"
                         >
                           <Minus className="w-4 h-4 mx-auto" />
                         </button>
-                        <button 
-                          onClick={() => item.plat && addToBasket(item.plat)} 
+                        <button
+                          onClick={() => item.plat && addToBasket(item.plat)}
                           className="w-9 h-9 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all active:scale-90"
                         >
                           <Plus className="w-4 h-4 mx-auto" />
@@ -786,11 +1084,9 @@ const [orderError, setOrderError] = useState<string | null>(null);
                       </div>
 
                       {/* Item Total */}
-                      <div className="text-right flex-shrink-0">
-                        <p className="font-black text-[#FC8A06] text-lg">
-                          Ä{formatPrice(item.prix_unitaire * item.quantite)}
-                        </p>
-                      </div>
+                      <p className="font-black text-[#FC8A06] text-lg">
+                        {formatPrice(item.prix_unitaire * item.quantite)} FCFA
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -801,7 +1097,7 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-[1.5rem] p-6 shadow-inner">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-bold text-gray-600 uppercase tracking-wider">Total</span>
-                    <span className="text-4xl font-black text-[#FC8A06]">Ä{formatPrice(totalInCentimes)}</span>
+                    <span className="text-4xl font-black text-[#FC8A06]">{formatPrice(totalInCentimes)} FCFA</span>
                   </div>
                   <p className="text-xs text-gray-500 font-medium text-right">Taxes et service inclus</p>
                 </div>
@@ -823,10 +1119,10 @@ const [orderError, setOrderError] = useState<string | null>(null);
         <div>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-black text-[#03081F]">RÈservation</h2>
-              <p className="text-sm text-gray-500 font-medium">Garantissez votre table</p>
+              <h2 className="text-2xl font-black text-[#03081F]">R√©servation</h2>
+              <p className="text-sm text-gray-500 font-medium">{selectedReservation ? "Mettez √† jour vos informations" : "Garantissez votre table"}</p>
             </div>
-            <button 
+            <button
               onClick={() => setIsReservationOpen(false)}
               className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all"
             >
@@ -839,8 +1135,8 @@ const [orderError, setOrderError] = useState<string | null>(null);
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="text-xl font-black text-[#03081F] mb-2">RÈservation envoyÈe !</h3>
-              <p className="text-gray-500 font-medium">Le gÈrant va examiner votre demande</p>
+              <h3 className="text-xl font-black text-[#03081F] mb-2">R√©servation envoy√©e !</h3>
+              <p className="text-gray-500 font-medium">Le g√©rant va examiner votre demande</p>
             </div>
           ) : (
             <form className="space-y-5" onSubmit={createReservation}>
@@ -855,15 +1151,14 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Nombre de personnes</label>
                 <div className="grid grid-cols-4 gap-3">
                   {[2, 4, 6, 8].map(n => (
-                    <button 
-                      key={n} 
+                    <button
+                      key={n}
                       type="button"
                       onClick={() => setReservationData(prev => ({ ...prev, nbPersonnes: n }))}
-                      className={`h-14 border-2 rounded-[1.2rem] font-black text-lg transition-all active:scale-95 ${
-                        reservationData.nbPersonnes === n
-                          ? 'border-[#FC8A06] bg-orange-50 text-[#FC8A06]'
-                          : 'border-gray-200 hover:border-[#FC8A06] hover:bg-orange-50 hover:text-[#FC8A06]'
-                      }`}
+                      className={`h-14 border-2 rounded-[1.2rem] font-black text-lg transition-all active:scale-95 ${reservationData.nbPersonnes === n
+                        ? 'border-[#FC8A06] bg-orange-50 text-[#FC8A06]'
+                        : 'border-gray-200 hover:border-[#FC8A06] hover:bg-orange-50 hover:text-[#FC8A06]'
+                        }`}
                     >
                       {n}
                     </button>
@@ -874,23 +1169,23 @@ const [orderError, setOrderError] = useState<string | null>(null);
               {/* Date & Time */}
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Date & Heure</label>
-                <input 
+                <input
                   type="datetime-local"
                   required
                   value={reservationData.dateReservation}
                   onChange={(e) => setReservationData(prev => ({ ...prev, dateReservation: e.target.value }))}
                   min={new Date().toISOString().slice(0, 16)}
-                  className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.2rem] font-medium outline-none focus:border-[#FC8A06] transition-all" 
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.2rem] font-medium outline-none focus:border-[#FC8A06] transition-all"
                 />
               </div>
 
               {/* Comment */}
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Commentaire (optionnel)</label>
-                <textarea 
+                <textarea
                   value={reservationData.commentaire}
                   onChange={(e) => setReservationData(prev => ({ ...prev, commentaire: e.target.value }))}
-                  placeholder="Allergie, demande spÈciale..."
+                  placeholder="Allergie, demande sp√©ciale..."
                   className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.2rem] h-24 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all"
                 />
               </div>
@@ -900,22 +1195,22 @@ const [orderError, setOrderError] = useState<string | null>(null);
                 type="submit"
                 className="w-full bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold mt-6"
               >
-                Confirmer ma rÈservation
+                Confirmer ma r√©servation
               </button>
             </form>
           )}
         </div>
       </Modal>
 
-      {/* REVIEW MODAL - Interactive */}
+      {/* REVIEW MODAL - Connected to API */}
       <Modal isOpen={isReviewOpen} onClose={() => setIsReviewOpen(false)} title="">
         <div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-black text-[#03081F]">Votre Avis</h2>
-              <p className="text-sm text-gray-500 font-medium">Partagez votre expÈrience</p>
+              <p className="text-sm text-gray-500 font-medium">Partagez votre exp√©rience</p>
             </div>
-            <button 
+            <button
               onClick={() => setIsReviewOpen(false)}
               className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all"
             >
@@ -923,70 +1218,407 @@ const [orderError, setOrderError] = useState<string | null>(null);
             </button>
           </div>
 
-          <div className="space-y-6">
-            <div className="text-center">
-              <p className="text-gray-600 mb-5 font-medium">Comment s'est passÈe votre visite ?</p>
-              <div className="flex justify-center gap-2">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button 
-                    key={star} 
-                    className="text-gray-200 hover:text-yellow-400 hover:scale-125 transition-all active:scale-110"
+          {reviewSuccess ? (
+            <div className="py-16 text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-xl font-black text-[#03081F] mb-2">Merci pour votre avis !</h3>
+              <p className="text-gray-500 font-medium">Votre retour nous aide √† nous am√©liorer</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="text-center">
+                <p className="text-gray-600 mb-5 font-medium">Comment s'est pass√©e votre visite ?</p>
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => setReviewRating(star)}
+                      className={`transition-all hover:scale-125 active:scale-110 ${star <= reviewRating ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-400'
+                        }`}
+                    >
+                      <Star className="w-12 h-12 fill-current" />
+                    </button>
+                  ))}
+                </div>
+                {reviewRating > 0 && (
+                  <p className="mt-2 text-sm font-bold text-[#FC8A06]">
+                    {reviewRating === 5 ? 'Excellent !' : reviewRating === 4 ? 'Tr√®s bien' : reviewRating === 3 ? 'Correct' : reviewRating === 2 ? 'D√©cevant' : 'Mauvais'}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Votre commentaire</label>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Partagez votre exp√©rience avec nous..."
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.5rem] h-32 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all"
+                />
+              </div>
+
+              <button
+                onClick={submitReview}
+                disabled={reviewRating === 0 || reviewLoading}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold disabled:opacity-50"
+              >
+                {reviewLoading ? <Loader className="w-5 h-5 animate-spin mx-auto" /> : 'Envoyer mon avis'}
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* PAYMENT MODAL */}
+      <Modal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} title="">
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-[#03081F]">Paiement</h2>
+              <p className="text-sm text-gray-500 font-medium">Choisissez votre m√©thode</p>
+            </div>
+            <button onClick={() => setIsPaymentOpen(false)} className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all">
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {paymentSuccess ? (
+            <div className="py-16 text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-xl font-black text-[#03081F] mb-2">Paiement r√©ussi !</h3>
+              <p className="text-gray-500 font-medium">Merci pour votre visite</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {currentOrder && (
+                <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+                  <p className="text-sm text-gray-500">Montant √† payer</p>
+                  <p className="text-3xl font-black text-[#FC8A06]">{formatPrice(currentOrder.montant_total)} FCFA</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {[
+                  { id: 'card', icon: CreditCard, label: 'Carte bancaire', color: 'from-blue-500 to-indigo-600' },
+                  { id: 'mobile', icon: Smartphone, label: 'Mobile Money', color: 'from-orange-500 to-red-500' },
+                  { id: 'cash', icon: Wallet, label: 'Esp√®ces', color: 'from-green-500 to-emerald-600' }
+                ].map(method => (
+                  <button
+                    key={method.id}
+                    onClick={() => setPaymentMethod(method.id as any)}
+                    className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${paymentMethod === method.id
+                      ? 'border-[#FC8A06] bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
-                    <Star className="w-12 h-12 fill-current" />
+                    <div className={`w-12 h-12 bg-gradient-to-r ${method.color} rounded-xl flex items-center justify-center`}>
+                      <method.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <span className="font-bold text-[#03081F]">{method.label}</span>
+                    {paymentMethod === method.id && <CheckCircle className="w-5 h-5 text-[#FC8A06] ml-auto" />}
                   </button>
                 ))}
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Votre commentaire</label>
-              <textarea 
-                placeholder="Partagez votre expÈrience avec nous..." 
-                className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.5rem] h-32 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all" 
-              />
+              <button
+                onClick={processPayment}
+                disabled={paymentLoading}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-green-500/30 mt-4 font-bold disabled:opacity-50"
+              >
+                {paymentLoading ? <Loader className="w-5 h-5 animate-spin mx-auto" /> : 'Confirmer le paiement'}
+              </button>
             </div>
+          )}
+        </div>
+      </Modal>
 
+      {/* CANCEL CONFIRMATION MODAL */}
+      <Modal isOpen={isCancelOpen} onClose={() => setIsCancelOpen(false)} title="">
+        <div className="text-center py-6">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <h3 className="text-xl font-black text-[#03081F] mb-2">Annuler la commande ?</h3>
+          <p className="text-gray-500 mb-6">Cette action est irr√©versible</p>
+          <div className="flex gap-3">
             <button
-              onClick={() => setIsReviewOpen(false)}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold"
+              onClick={() => setIsCancelOpen(false)}
+              className="flex-1 bg-gray-100 text-gray-700 rounded-xl p-4 font-bold hover:bg-gray-200 transition-all"
             >
-              Envoyer mon avis
+              Non, garder
+            </button>
+            <button
+              onClick={cancelOrder}
+              disabled={cancelLoading}
+              className="flex-1 bg-red-500 text-white rounded-xl p-4 font-bold hover:bg-red-600 transition-all disabled:opacity-50"
+            >
+              {cancelLoading ? <Loader className="w-5 h-5 animate-spin mx-auto" /> : 'Oui, annuler'}
             </button>
           </div>
         </div>
       </Modal>
 
-      {/* FLOATING CART BUTTON - Enhanced */}
-      {step === 'MENU' && basket.length > 0 && !isBasketOpen && (
-        <div className="fixed bottom-8 left-0 right-0 z-40 px-4">
-          <div className="max-w-md mx-auto">
-            <button
-              onClick={() => setIsBasketOpen(true)}
-              className="w-full bg-gradient-to-r from-[#03081F] via-gray-900 to-[#03081F] rounded-[1.5rem] p-5 shadow-2xl border-2 border-white/10 hover:scale-105 transition-all active:scale-95"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-12 h-12 bg-green-500 rounded-[1rem] flex items-center justify-center shadow-lg">
-                      <ShoppingBasket className="w-6 h-6 text-white" />
+      {/* ADDITION/BILL MODAL */}
+      <Modal isOpen={isAdditionOpen} onClose={() => setIsAdditionOpen(false)} title="">
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-[#03081F]">L'Addition</h2>
+              <p className="text-sm text-gray-500 font-medium">D√©tail de votre commande</p>
+            </div>
+            <button onClick={() => setIsAdditionOpen(false)} className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all">
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {currentOrder && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                {currentOrder.lignes?.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-[#03081F]">{item.plat?.nom || 'Article'}</p>
+                      <p className="text-xs text-gray-500">{item.quantite}x @ {formatPrice(item.prix_unitaire)} FCFA</p>
                     </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-white text-xs font-black">{basket.reduce((a, b) => a + b.quantite, 0)}</span>
-                    </div>
+                    <p className="font-bold">{formatPrice(item.quantite * item.prix_unitaire)} FCFA</p>
                   </div>
-                  <div className="text-left">
-                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Mon panier</p>
-                    <p className="font-black text-white text-lg">Ä{formatPrice(totalInCentimes)}</p>
-                  </div>
+                ))}
+              </div>
+
+              <div className="border-t-2 border-dashed pt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-500">Sous-total</span>
+                  <span className="font-bold">{formatPrice(currentOrder.montant_total)} FCFA</span>
                 </div>
-                <div className="bg-[#FC8A06] px-5 py-2 rounded-[1rem] shadow-lg">
-                  <span className="text-white font-black text-sm">Voir</span>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-500">Service</span>
+                  <span className="font-bold">0 FCFA</span>
+                </div>
+                <div className="flex justify-between items-center text-xl">
+                  <span className="font-black text-[#03081F]">TOTAL</span>
+                  <span className="font-black text-[#FC8A06]">{formatPrice(currentOrder.montant_total)} FCFA</span>
                 </div>
               </div>
+
+              <button
+                onClick={() => { setIsAdditionOpen(false); setIsPaymentOpen(true); }}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl font-bold mt-4"
+              >
+                Payer maintenant
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* AUTH MODAL */}
+      <ClientAuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={handleAuthSuccess}
+      />
+
+      {/* MY RESERVATIONS MODAL */}
+      <Modal isOpen={isMyReservationsOpen} onClose={() => setIsMyReservationsOpen(false)} title="">
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-black text-[#03081F]">Mes R√©servations</h2>
+            <button onClick={() => setIsMyReservationsOpen(false)} className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all">
+              <X className="w-5 h-5 text-gray-600" />
             </button>
+          </div>
+
+          {myReservations.length === 0 ? (
+            <div className="text-center py-10">
+              <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Aucune r√©servation</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myReservations.map(res => (
+                <div key={res.id} className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                  <div>
+                    <p className="font-bold text-[#03081F] flex items-center gap-2">
+                      <Calendar className="w-3 h-3 text-[#FC8A06]" />
+                      {new Date(res.date_reservation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <p className="text-sm text-gray-500">{res.nombre_personnes} personnes</p>
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block ${res.statut === 'CONFIRMEE' ? 'bg-green-100 text-green-700' :
+                      res.statut === 'ANNULEE' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>{res.statut}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {res.statut !== 'ANNULEE' && (
+                      <>
+                        <button
+                          onClick={() => openEditReservation(res)}
+                          className="bg-white text-blue-500 hover:bg-blue-50 p-2 rounded-xl border border-gray-100 transition-all shadow-sm"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => cancelReservation(res.id)}
+                          className="bg-white text-red-500 hover:bg-red-50 p-2 rounded-xl border border-gray-100 transition-all shadow-sm"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+      {/* MY ORDERS MODAL */}
+      <Modal isOpen={isMyOrdersOpen} onClose={() => setIsMyOrdersOpen(false)} title="">
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-black text-[#03081F]">Mes Commandes</h2>
+            <button onClick={() => setIsMyOrdersOpen(false)} className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all">
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {myOrders.length === 0 ? (
+            <div className="text-center py-10">
+              <ShoppingBasket className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Aucune commande</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myOrders.map(order => (
+                <div key={order.id} className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-black text-[#03081F]">#{order.id}</span>
+                      <span className="text-xs text-gray-500">{new Date(order.date_commande || '').toLocaleDateString('fr-FR')}</span>
+                    </div>
+                    <p className="font-bold text-[#FC8A06]">{formatPrice(order.montant_total)} FCFA</p>
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block ${order.statut === OrderStatus.PAYEE ? 'bg-green-100 text-green-700' :
+                      order.statut === OrderStatus.ANNULEE ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                      }`}>{order.statut}</span>
+                  </div>
+                  <button
+                    onClick={() => viewOrderDetails(order)}
+                    className="bg-white text-[#FC8A06] hover:bg-orange-50 p-2 rounded-xl border border-gray-100 transition-all shadow-sm"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* DISH DETAILS MODAL */}
+      <Modal isOpen={!!selectedPlat} onClose={() => setSelectedPlat(null)} title="">
+        {selectedPlat && (
+          <div className="relative -m-6 h-auto flex flex-col overflow-hidden max-h-[85vh]">
+            <div className="h-64 relative">
+              <img
+                src={getImageUrl(selectedPlat.image_url)}
+                className="w-full h-full object-cover"
+                alt={selectedPlat.nom}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+              <button
+                onClick={() => setSelectedPlat(null)}
+                className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-white/40 transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => toggleFavorite(selectedPlat.id)}
+                className="absolute bottom-4 right-4 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center transition-all active:scale-90"
+              >
+                <Heart className={`w-6 h-6 transition-colors ${favorites.includes(selectedPlat.id) ? 'text-red-500 fill-red-500' : 'text-gray-300'}`} />
+              </button>
+            </div>
+
+            <div className="flex-1 bg-white rounded-t-[3rem] -mt-10 p-8 flex flex-col overflow-y-auto">
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-3 py-1 bg-orange-100 text-[#FC8A06] text-[10px] font-bold uppercase tracking-widest rounded-full">Suggestion Chef</span>
+                  <div className="flex items-center gap-1 text-yellow-500">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span className="text-sm font-bold">4.9</span>
+                  </div>
+                </div>
+                <h2 className="text-3xl font-black text-[#03081F] mb-4">{selectedPlat.nom}</h2>
+                <p className="text-gray-500 leading-relaxed font-medium">
+                  {selectedPlat.description || 'Une exp√©rience culinaire unique, pr√©par√©e avec passion par notre brigade. Des ingr√©dients frais et de saison pour un go√ªt inoubliable.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="p-4 bg-gray-50 rounded-2xl">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Portion</p>
+                  <p className="font-bold text-[#03081F]">G√©n√©reuse (450g)</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-2xl">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Calories</p>
+                  <p className="font-bold text-[#03081F]">~650 kcal</p>
+                </div>
+              </div>
+
+              <div className="mt-auto flex items-center justify-between gap-6 pb-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Prix</span>
+                  <span className="text-2xl font-black text-[#FC8A06]">{formatPrice(selectedPlat.prix)} FCFA</span>
+                </div>
+                <button
+                  onClick={() => { addToBasket(selectedPlat); setSelectedPlat(null); }}
+                  className="flex-1 bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-2xl p-5 shadow-xl shadow-orange-500/30 font-black text-lg hover:shadow-orange-500/50 transition-all active:scale-95"
+                >
+                  Ajouter
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={`px-6 py-3 rounded-full shadow-2xl backdrop-blur-md border border-white/20 flex items-center gap-3 ${toast.type === 'success' ? 'bg-green-500/90 text-white' :
+            toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-blue-500/90 text-white'
+            }`}>
+            {toast.type === 'success' && <CheckCircle className="w-5 h-5" />}
+            <span className="font-bold text-sm tracking-tight">{toast.message}</span>
           </div>
         </div>
       )}
+
+      {/* BOTTOM TAB BAR */}
+      <BottomTabBar
+        activeTab={
+          isBasketOpen ? 'BASKET' :
+            isMyReservationsOpen ? 'RESERVATIONS' :
+              step === 'MENU' ? 'MENU' : 'HOME'
+        }
+        setActiveTab={(tab) => {
+          if (tab === 'BASKET') {
+            setIsBasketOpen(true);
+          } else if (tab === 'RESERVATIONS') {
+            if (clientToken) fetchMyReservations();
+            else setIsAuthOpen(true);
+          } else {
+            setStep(tab as any);
+            setIsBasketOpen(false);
+            setIsMyReservationsOpen(false);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        basketCount={basket.reduce((a, b) => a + b.quantite, 0)}
+      />
     </div>
   );
 };
