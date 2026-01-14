@@ -130,29 +130,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onGuestAccess }) => {
                         </Button>
                     </form>
 
-                    {/* Demo Credentials Info */}
-                    <div className="mt-6 pt-6 border-t border-gray-100">
-                        <p className="text-xs text-gray-400 text-center font-bold uppercase tracking-widest mb-3">
-                            Comptes de démo
-                        </p>
-                        <div className="space-y-2 text-xs text-gray-500">
-                            <div className="bg-gray-50 p-3 rounded-xl">
-                                <p className="font-bold text-[#FC8A06]">👑 Gérant</p>
-                                <p className="mt-1">Email: <span className="font-mono">gerant@resto.com</span></p>
-                                <p>Mot de passe: <span className="font-mono">password123</span></p>
-                            </div>
-                            <div className="bg-gray-50 p-3 rounded-xl">
-                                <p className="font-bold text-blue-600">🤵 Serveur</p>
-                                <p className="mt-1">Email: <span className="font-mono">serveur@resto.com</span></p>
-                                <p>Mot de passe: <span className="font-mono">password123</span></p>
-                            </div>
-                            <div className="bg-gray-50 p-3 rounded-xl">
-                                <p className="font-bold text-orange-600">👨‍🍳 Cuisinier</p>
-                                <p className="mt-1">Email: <span className="font-mono">cuisinier@resto.com</span></p>
-                                <p>Mot de passe: <span className="font-mono">password123</span></p>
-                            </div>
-                        </div>
-                    </div>
+
                 </Card>
 
                 {/* Footer */}
