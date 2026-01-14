@@ -34,15 +34,33 @@ def migrate_images():
         skipped_count = 0
         
         for plat in plats:
-            if not plat.image_url:
-                continue
-                
-            # On ignore les URLs absolues ou déjà migrées
-            if plat.image_url.startswith(("/static/", "http")):
+            # On essaye de trouver un fichier correspondant à l'ID (ex: 34.jpg ou 34.jpeg)
+            found_file = None
+            for ext in [".jpg", ".jpeg", ".png"]:
+                test_file = source_dir / f"{plat.id}{ext}"
+                if test_file.exists():
+                    found_file = test_file
+                    break
+            
+            if found_file:
+                filename = found_file.name
+                dest_file = dest_dir / filename
+                try:
+                    shutil.copy2(found_file, dest_file)
+                    new_url = f"/static/uploads/plats/{filename}"
+                    plat.image_url = new_url
+                    session.add(plat)
+                    print(f"✅ Mis à jour par ID: {filename} -> {new_url} (Plat: {plat.nom})")
+                    migrated_count += 1
+                    continue
+                except Exception as e:
+                    print(f"❌ Erreur migration {filename}: {e}")
+
+            # Fallback sur l'image_url actuelle si pas de fichier ID trouvé
+            if not plat.image_url or plat.image_url.startswith(("/static/", "http")):
                 skipped_count += 1
                 continue
             
-            # Le nom de fichier actuel (ex: 17.jpg)
             filename = plat.image_url
             source_file = source_dir / filename
             
