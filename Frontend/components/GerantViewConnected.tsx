@@ -221,6 +221,7 @@ export const GerantViewConnected: React.FC = () => {
     const [isAddCategorieOpen, setIsAddCategorieOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
     // Form states
     const [platForm, setPlatForm] = useState<PlatFormData>({
@@ -638,8 +639,21 @@ export const GerantViewConnected: React.FC = () => {
                                     </Button>
                                 </div>
 
+                                {selectedCategory && (
+                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Filtre actif :</span>
+                                        <button
+                                            onClick={() => setSelectedCategory(null)}
+                                            className="flex items-center gap-2 bg-[#FC8A06] text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
+                                        >
+                                            {categories.find(c => c.id === selectedCategory)?.nom || 'Catégorie'}
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {plats.filter(p => !searchQuery || p.nom.toLowerCase().includes(searchQuery.toLowerCase())).map(plat => (
+                                    {plats.filter(p => (!searchQuery || p.nom.toLowerCase().includes(searchQuery.toLowerCase())) && (!selectedCategory || p.categorie_id === selectedCategory)).map(plat => (
                                         <Card key={plat.id} className="group border-none shadow-xl shadow-gray-100/50 hover:shadow-2xl hover:shadow-orange-200/20 transition-all rounded-[2rem] overflow-hidden">
                                             <div className="h-56 relative overflow-hidden bg-gray-50">
                                                 <img
@@ -719,7 +733,11 @@ export const GerantViewConnected: React.FC = () => {
 
                                 <div className="grid grid-cols-1 gap-4">
                                     {categories.map(cat => (
-                                        <div key={cat.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:translate-x-1 transition-all duration-300">
+                                        <div
+                                            key={cat.id}
+                                            onClick={() => { setSelectedCategory(cat.id); setActiveTab('MENU'); }}
+                                            className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:translate-x-1 transition-all duration-300 cursor-pointer"
+                                        >
                                             <div className="flex items-center gap-5">
                                                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-[#FC8A06] border border-gray-100 font-black text-xl">
                                                     {cat.nom[0].toUpperCase()}
