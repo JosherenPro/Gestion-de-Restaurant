@@ -447,8 +447,13 @@ export const GerantViewConnected: React.FC = () => {
     const handleSaveCategorie = async () => {
         try {
             setActionLoading(true);
-            await apiService.createCategorie(categorieForm, getToken());
+            if (selectedItem) {
+                await apiService.updateCategorie(selectedItem.id, categorieForm, getToken());
+            } else {
+                await apiService.createCategorie(categorieForm, getToken());
+            }
             setIsAddCategorieOpen(false);
+            setSelectedItem(null);
             setCategorieForm({ nom: '', description: '' });
             await loadData();
         } catch (err) {
@@ -750,10 +755,9 @@ export const GerantViewConnected: React.FC = () => {
                                             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     onClick={() => {
+                                                        setSelectedItem(cat);
                                                         setCategorieForm({ nom: cat.nom, description: cat.description || '' });
-                                                        // Assuming we need a way to track ID for update, but current implementation might only support Create?
-                                                        // For now, let's just open the modal to at least show responsiveness or just stop prop.
-                                                        // Actually, let's just stop propagation for now to fix the 'broken page' redirection issue.
+                                                        setIsAddCategorieOpen(true);
                                                     }}
                                                     className="p-3 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
                                                 >
@@ -1008,12 +1012,13 @@ export const GerantViewConnected: React.FC = () => {
                 </div>
             </Modal>
 
-            <Modal isOpen={isAddCategorieOpen} onClose={() => setIsAddCategorieOpen(false)} title="Nouvelle Catégorie">
+
+            <Modal isOpen={isAddCategorieOpen} onClose={() => { setIsAddCategorieOpen(false); setSelectedItem(null); setCategorieForm({ nom: '', description: '' }); }} title={selectedItem ? "Modifier la Catégorie" : "Nouvelle Catégorie"}>
                 <div className="space-y-6">
-                    <FormInput label="Nom de la catégorie" value={categorieForm.nom} onChange={v => setPersonnelForm({ ...personnelForm, nom: v })} placeholder="Ex: Entrées, Desserts..." icon={<Tag size={18} />} />
-                    <FormTextarea label="Description" value={categorieForm.description} onChange={v => setPersonnelForm({ ...personnelForm, prenom: v })} />
+                    <FormInput label="Nom de la catégorie" value={categorieForm.nom} onChange={v => setCategorieForm({ ...categorieForm, nom: v })} placeholder="Ex: Entrées, Desserts..." icon={<Tag size={18} />} />
+                    <FormTextarea label="Description" value={categorieForm.description} onChange={v => setCategorieForm({ ...categorieForm, description: v })} />
                     <Button fullWidth onClick={handleSaveCategorie} className="h-16 rounded-2xl uppercase" disabled={actionLoading}>
-                        {actionLoading ? <Loader className="animate-spin" /> : <Save size={20} />} Créer la catégorie
+                        {actionLoading ? <Loader className="animate-spin" /> : <Save size={20} />} {selectedItem ? "Enregistrer" : "Créer la catégorie"}
                     </Button>
                 </div>
             </Modal>
