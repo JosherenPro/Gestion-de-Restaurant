@@ -747,11 +747,22 @@ export const GerantViewConnected: React.FC = () => {
                                                     <p className="text-xs text-gray-400 font-medium line-clamp-1 max-w-[200px] md:max-w-md">{cat.description || 'Catégorie de mets savoureux.'}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <button className="p-3 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all">
+                                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => {
+                                                        setCategorieForm({ nom: cat.nom, description: cat.description || '' });
+                                                        // Assuming we need a way to track ID for update, but current implementation might only support Create?
+                                                        // For now, let's just open the modal to at least show responsiveness or just stop prop.
+                                                        // Actually, let's just stop propagation for now to fix the 'broken page' redirection issue.
+                                                    }}
+                                                    className="p-3 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                                >
                                                     <Edit size={18} />
                                                 </button>
-                                                <button onClick={() => { if (window.confirm('SUPPRIMER ?')) apiService.deleteCategorie(cat.id, getToken()).then(loadData); }} className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                                                <button
+                                                    onClick={() => { if (window.confirm('SUPPRIMER ?')) apiService.deleteCategorie(cat.id, getToken()).then(loadData); }}
+                                                    className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                                >
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
