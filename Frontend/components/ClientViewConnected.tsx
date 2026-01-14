@@ -4,6 +4,7 @@ import { Button, Card, Modal } from './UI';
 import { ShoppingBasket, Search, Plus, Minus, CheckCircle, Calendar, Star, MessageSquare, Loader, Sparkles, ChefHat, Clock, Award, TrendingUp, Heart, X, UtensilsCrossed, CreditCard, Wallet, Smartphone, Receipt, XCircle, LogOut, User, History, Edit, Trash2, Home, Utensils } from 'lucide-react';
 import { useMenu, useMenus } from '../hooks/useApi';
 import { apiService } from '../services/api.service';
+import { API_CONFIG } from '../config/api.config';
 import { formatPrice } from '../mockData';
 import { ClientAuthModal } from './ClientAuthModal';
 import { BottomTabBar } from './BottomTabBar';
@@ -387,7 +388,10 @@ export const ClientView: React.FC = () => {
 
   const getImageUrl = (imageUrl?: string) => {
     if (imageUrl) {
-      return imageUrl.startsWith('http') ? imageUrl : `https://gestion-de-restaurant.onrender.com${imageUrl}`;
+      if (imageUrl.startsWith('http')) return imageUrl;
+      // Remove leading slash if present to avoid double slashes
+      const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+      return `${API_CONFIG.BASE_URL}/${cleanPath}`;
     }
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&h=300';
   };
@@ -620,7 +624,7 @@ export const ClientView: React.FC = () => {
                     : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
                     }`}
                 >
-                  ? Tous les plats
+                  Tous les plats
                 </button>
                 {categories.map(cat => (
                   <button

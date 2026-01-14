@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_CONFIG } from '../config/api.config';
 import { apiService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import { Order, OrderStatus, Table, TableStatus } from '../types';
@@ -21,6 +22,7 @@ export const ServerViewConnected: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'TABLES' | 'COMMANDES'>('TABLES');
 
+  const loadingRef = React.useRef(false);
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 5000); // Refresh every 5 seconds
@@ -28,17 +30,21 @@ export const ServerViewConnected: React.FC = () => {
   }, [token]);
 
   const loadData = async () => {
-    if (!token) {
-      setLoading(false);
+    if (!token || loadingRef.current) {
+      //       setLoading(false); // Do not force false here, let the initial load handle it
+      if (!token) setLoading(false);
       return;
     }
+    loadingRef.current = true;
 
     try {
+      console.log('Fetching data with config:', API_CONFIG);
+      console.log('Token present:', !!token);
       const [tablesData, commandesData, platsData, categoriesData] = await Promise.all([
-        apiService.getTables(token),
-        apiService.getCommandes(token),
-        apiService.getPlats(token),
-        apiService.getCategories(token)
+        apiService.getTables(token).then(res => { console.log('Tables loaded'); return res; }),
+        apiService.getCommandes(token).then(res => { console.log('Commandes loaded'); return res; }),
+        apiService.getPlats(token).then(res => { console.log('Plats loaded'); return res; }),
+        apiService.getCategories(token).then(res => { console.log('Categories loaded'); return res; })
       ]);
 
       setTables(tablesData);
@@ -51,6 +57,7 @@ export const ServerViewConnected: React.FC = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   };
 
@@ -354,7 +361,7 @@ export const ServerViewConnected: React.FC = () => {
                             variant="primary"
                             className="h-16 rounded-[1.2rem] font-black text-xs shadow-xl shadow-orange-500/10 uppercase tracking-widest"
                           >
-                            <CheckCircle2 size={18} className="mr-2" /> Valider Ticket
+                            <CheckCircle2 size={18} className="mr-2" /> Transmettre en Cuisine
                           </Button>
                         )}
                         {order.statut === OrderStatus.PRETE && (
@@ -555,7 +562,7 @@ export const ServerViewConnected: React.FC = () => {
               className="h-16 rounded-2xl shadow-2xl shadow-orange-500/20 font-black text-sm uppercase tracking-widest border-none relative overflow-hidden group"
               disabled={manualBasket.length === 0}
             >
-              <span className="relative z-10">Envoyer en Cuisine</span>
+              <span className="relative z-10">Transmettre en Cuisine</span>
               <span className="ml-4 tabular-nums relative z-10 bg-white/10 px-3 py-1 rounded-lg">
                 {manualBasket.reduce((a, b) => a + b.prix * b.quantite, 0).toLocaleString()} CFA
               </span>
