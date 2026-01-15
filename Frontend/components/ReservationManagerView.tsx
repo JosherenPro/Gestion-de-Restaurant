@@ -28,9 +28,9 @@ export const ReservationManagerView: React.FC = () => {
       // Normaliser les données du backend (status -> statut, minuscule -> MAJUSCULE)
       const normalizedData = data.map((res: any) => ({
         ...res,
-        statut: (res.statut || res.status || 'EN_ATTENTE').toUpperCase(),
+        status: (res.statut || res.status || 'EN_ATTENTE').toUpperCase(),
         // Assurer que les autres champs sont là
-        status: undefined // On nettoie pour éviter la confusion
+        statut: undefined // On nettoie pour éviter la confusion
       }));
       setReservations(normalizedData);
     } catch (err: any) {
@@ -113,9 +113,9 @@ export const ReservationManagerView: React.FC = () => {
     });
   };
 
-  const pendingReservations = reservations.filter(r => r.statut === 'EN_ATTENTE' || (r as any).statut === 'en_attente');
-  const confirmedReservations = reservations.filter(r => r.statut === 'CONFIRMEE' || (r as any).statut === 'confirmee');
-  const canceledReservations = reservations.filter(r => r.statut === 'ANNULEE' || (r as any).statut === 'annulee');
+  const pendingReservations = reservations.filter(r => r.status === 'EN_ATTENTE' || (r as any).status === 'en_attente');
+  const confirmedReservations = reservations.filter(r => r.status === 'CONFIRMEE' || (r as any).status === 'confirmee');
+  const canceledReservations = reservations.filter(r => r.status === 'ANNULEE' || (r as any).status === 'annulee');
 
   if (loading) {
     return (
@@ -217,7 +217,7 @@ export const ReservationManagerView: React.FC = () => {
                         <p className="text-xs text-gray-500">Reservation #{reservation.id}</p>
                       </div>
                     </div>
-                    {getStatusBadge(reservation.statut)}
+                    {getStatusBadge(reservation.status)}
                   </div>
 
                   <div className="space-y-3 mb-4">
@@ -287,7 +287,7 @@ export const ReservationManagerView: React.FC = () => {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <p className="font-bold text-sm">Client #{reservation.client_id}</p>
-                    {getStatusBadge(reservation.statut)}
+                    {getStatusBadge(reservation.status)}
                   </div>
                   <div className="space-y-2 text-xs text-gray-600">
                     <p>{formatDate(reservation.date_reservation)}</p>
@@ -358,10 +358,10 @@ export const ReservationManagerView: React.FC = () => {
             )}
 
             <div className="flex items-center justify-center">
-              {getStatusBadge(selectedReservation.statut)}
+              {getStatusBadge(selectedReservation.status)}
             </div>
 
-            {selectedReservation.statut === 'EN_ATTENTE' && (
+            {selectedReservation.status === 'EN_ATTENTE' && (
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => handleConfirm(selectedReservation.id)}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MenuItem, OrderItem, OrderStatus, Order, Categorie, TypeCommande, Menu, Reservation } from '../types';
+import { MenuItem, OrderItem, OrderStatus, Order, Categorie, TypeCommande, Menu, Reservation, Table, TableStatus } from '../types';
 import { Button, Card, Modal } from './UI';
-import { ShoppingBasket, Search, Plus, Minus, CheckCircle, Calendar, Star, MessageSquare, Loader, Sparkles, ChefHat, Clock, Award, TrendingUp, Heart, X, UtensilsCrossed, CreditCard, Wallet, Smartphone, Receipt, XCircle, LogOut, User, History, Edit, Trash2, Home, Utensils } from 'lucide-react';
+import { ShoppingBasket, Search, Plus, Minus, CheckCircle, Calendar, Star, MessageSquare, Loader, Sparkles, ChefHat, Clock, Award, TrendingUp, Heart, X, UtensilsCrossed, CreditCard, Wallet, Smartphone, Receipt, XCircle, LogOut, User, History, Edit, Trash2, Home, Utensils, MapPin } from 'lucide-react';
 import { useMenu, useMenus } from '../hooks/useApi';
 import { apiService } from '../services/api.service';
 import { API_CONFIG } from '../config/api.config';
@@ -25,11 +25,16 @@ export const ClientView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [orderError, setOrderError] = useState<string | null>(null);
 
+  // Table selection state
+  const [tables, setTables] = useState<Table[]>([]);
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [loadingTables, setLoadingTables] = useState(false);
+
   // Reservation state
   const [reservationData, setReservationData] = useState({
     nbPersonnes: 2,
     dateReservation: '',
-    commentaire: ''
+    commentaire: '',
   });
   const [reservationError, setReservationError] = useState<string | null>(null);
   const [reservationSuccess, setReservationSuccess] = useState(false);
@@ -92,10 +97,7 @@ export const ClientView: React.FC = () => {
     try {
       const orders = await apiService.getCommandes(clientToken || undefined);
       // Filter by current client if clientData exists
-      const filtered = clientData
-        ? orders.filter(o => o.client_id === clientData.id)
-        : orders.filter(o => o.client_id === CLIENT_ID);
-      setMyOrders(filtered);
+      setMyOrders(orders);
       setIsMyOrdersOpen(true);
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -108,7 +110,24 @@ export const ClientView: React.FC = () => {
     setIsMyOrdersOpen(false);
   };
   const CLIENT_ID = 1;
-  const TABLE_ID = 1;
+  // const TABLE_ID = 1; // Removed hardcoded table ID
+
+  // Fetch tables
+  useEffect(() => {
+    const fetchTables = async () => {
+      setLoadingTables(true);
+      try {
+        // Use API_CONFIG for consistent URL construction
+        const data = await apiService.get(API_CONFIG.ENDPOINTS.TABLES.BASE, { token: clientToken || undefined });
+        setTables(data);
+      } catch (err) {
+        console.error('Error fetching tables:', err);
+      } finally {
+        setLoadingTables(false);
+      }
+    };
+    fetchTables();
+  }, [clientToken]);
 
   const addToBasket = (item: MenuItem) => {
     setBasket(prev => {
@@ -152,16 +171,21 @@ export const ClientView: React.FC = () => {
       setOrderError(null);
       console.log('?? Création de la commande...');
 
-      // Create the order without auth
+      if (!selectedTable) {
+        setOrderError('Veuillez sélectionner une table');
+        return;
+      }
+
+      // Create the order with auth if available
       const orderData = {
-        client_id: CLIENT_ID,
-        table_id: TABLE_ID,
+        client_id: clientData ? clientData.id : CLIENT_ID,
+        table_id: selectedTable,
         type_commande: TypeCommande.SUR_PLACE,
         montant_total: totalInCentimes,
-        notes: 'Commande client sans authentification'
+        notes: clientToken ? 'Commande client authentifié' : 'Commande client sans authentification'
       };
 
-      const newOrder = await apiService.createCommande(orderData);
+      const newOrder = await apiService.createCommande(orderData, clientToken || undefined);
       console.log('? Commande créée:', newOrder);
 
       // Add each item as a line
@@ -172,7 +196,7 @@ export const ClientView: React.FC = () => {
           quantite: item.quantite,
           prix_unitaire: item.prix_unitaire,
           notes_speciales: item.notes_speciales || ''
-        });
+        }, clientToken || undefined);
       }
 
       console.log('? Commande envoyée aux cuisiniers!');
@@ -196,11 +220,15 @@ export const ClientView: React.FC = () => {
         setReservationError('Veuillez sélectionner une date et une heure');
         return;
       }
+      if (!selectedTable) {
+        setReservationError('Veuillez sélectionner une table');
+        return;
+      }
 
       const reservationDateTime = new Date(reservationData.dateReservation).toISOString();
       const reservationPayload = {
         client_id: clientData?.id || CLIENT_ID,
-        table_id: TABLE_ID,
+        table_id: selectedTable,
         date_reservation: reservationDateTime,
         nombre_personnes: reservationData.nbPersonnes,
         notes: reservationData.commentaire || undefined
@@ -288,7 +316,7 @@ export const ClientView: React.FC = () => {
     try {
       await apiService.payerCommande(currentOrder.id, paymentMethod, clientToken || undefined);
       setPaymentSuccess(true);
-      setCurrentOrder({ ...currentOrder, statut: OrderStatus.PAYEE });
+      setCurrentOrder({ ...currentOrder, status: OrderStatus.PAYEE });
       setTimeout(() => {
         setIsPaymentOpen(false);
         setPaymentSuccess(false);
@@ -307,7 +335,7 @@ export const ClientView: React.FC = () => {
     setCancelLoading(true);
     try {
       // Note: Backend might need a cancel endpoint - using status update for now
-      setCurrentOrder({ ...currentOrder, statut: OrderStatus.ANNULEE });
+      setCurrentOrder({ ...currentOrder, status: OrderStatus.ANNULEE });
       setIsCancelOpen(false);
       setTimeout(() => setStep('HOME'), 1500);
     } catch (err) {
@@ -322,7 +350,7 @@ export const ClientView: React.FC = () => {
     if (!currentOrder) return;
     try {
       await apiService.receptionnerCommande(currentOrder.id, clientToken || undefined);
-      setCurrentOrder({ ...currentOrder, statut: OrderStatus.RECEPTIONNEE });
+      setCurrentOrder({ ...currentOrder, status: OrderStatus.RECEPTIONNEE });
       setIsReviewOpen(true);
     } catch (err) {
       console.error('Reception error:', err);
@@ -361,7 +389,7 @@ export const ClientView: React.FC = () => {
       // Normaliser les données (backend status -> frontend statut)
       const normalizedData = data.map((res: any) => ({
         ...res,
-        statut: (res.statut || res.status || 'EN_ATTENTE').toUpperCase()
+        status: (res.statut || res.status || 'EN_ATTENTE').toUpperCase()
       }));
       setMyReservations(normalizedData);
       setIsMyReservationsOpen(true);
@@ -895,28 +923,28 @@ export const ClientView: React.FC = () => {
                       label: 'En attente',
                       sublabel: 'Commande reçue',
                       icon: Clock,
-                      active: currentOrder.statut === OrderStatus.EN_ATTENTE_VALIDATION
+                      active: currentOrder.status === OrderStatus.EN_ATTENTE_VALIDATION
                     },
                     {
                       status: OrderStatus.VALIDEE,
                       label: 'Validée',
                       sublabel: 'Par notre équipe',
                       icon: CheckCircle,
-                      active: [OrderStatus.VALIDEE, OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut)
+                      active: [OrderStatus.VALIDEE, OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.status)
                     },
                     {
                       status: OrderStatus.EN_COURS,
                       label: 'En préparation',
                       sublabel: 'Nos chefs au travail',
                       icon: ChefHat,
-                      active: [OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut)
+                      active: [OrderStatus.EN_COURS, OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.status)
                     },
                     {
                       status: OrderStatus.PRETE,
                       label: 'Prêt !',
                       sublabel: 'Bonne dégustation',
                       icon: Sparkles,
-                      active: [OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.statut)
+                      active: [OrderStatus.PRETE, OrderStatus.SERVIE].includes(currentOrder.status)
                     },
                   ].map((s, idx) => (
                     <div key={idx} className="flex items-center gap-5 relative">
@@ -971,7 +999,7 @@ export const ClientView: React.FC = () => {
                   </button>
 
                   {/* Cancel Order - only before EN_COURS */}
-                  {[OrderStatus.EN_ATTENTE_VALIDATION, OrderStatus.VALIDEE].includes(currentOrder.statut) && (
+                  {[OrderStatus.EN_ATTENTE_VALIDATION, OrderStatus.VALIDEE].includes(currentOrder.status) && (
                     <button
                       onClick={() => setIsCancelOpen(true)}
                       className="w-full bg-red-50 border-2 border-red-200 text-red-600 rounded-[1.5rem] p-4 font-bold flex items-center justify-center gap-3 hover:bg-red-100 transition-all"
@@ -982,7 +1010,7 @@ export const ClientView: React.FC = () => {
                   )}
 
                   {/* Confirm Reception - only when SERVIE */}
-                  {currentOrder.statut === OrderStatus.SERVIE && (
+                  {currentOrder.status === OrderStatus.SERVIE && (
                     <button
                       onClick={confirmReception}
                       className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-[1.5rem] p-5 shadow-xl font-bold flex items-center justify-center gap-3"
@@ -993,7 +1021,7 @@ export const ClientView: React.FC = () => {
                   )}
 
                   {/* Pay Button - main action (only visible after server validation) */}
-                  {currentOrder.statut !== OrderStatus.PAYEE && currentOrder.statut !== OrderStatus.ANNULEE && currentOrder.statut !== OrderStatus.EN_ATTENTE_VALIDATION && (
+                  {currentOrder.status !== OrderStatus.PAYEE && currentOrder.status !== OrderStatus.ANNULEE && currentOrder.status !== OrderStatus.EN_ATTENTE_VALIDATION && (
                     <button
                       onClick={() => setIsPaymentOpen(true)}
                       className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-[1.5rem] p-5 shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transition-all hover:-translate-y-1 active:scale-95 font-bold flex items-center justify-center gap-3"
@@ -1004,7 +1032,7 @@ export const ClientView: React.FC = () => {
                   )}
 
                   {/* Message when waiting for server validation */}
-                  {currentOrder.statut === OrderStatus.EN_ATTENTE_VALIDATION && (
+                  {currentOrder.status === OrderStatus.EN_ATTENTE_VALIDATION && (
                     <div className="w-full bg-yellow-50 border-2 border-yellow-200 text-yellow-700 rounded-[1.5rem] p-5 font-bold flex items-center justify-center gap-3">
                       <Clock className="w-5 h-5" />
                       En attente de validation par le serveur
@@ -1012,7 +1040,7 @@ export const ClientView: React.FC = () => {
                   )}
 
                   {/* Paid confirmation */}
-                  {currentOrder.statut === OrderStatus.PAYEE && (
+                  {currentOrder.status === OrderStatus.PAYEE && (
                     <div className="w-full bg-green-50 border-2 border-green-200 text-green-700 rounded-[1.5rem] p-5 font-bold flex items-center justify-center gap-3">
                       <CheckCircle className="w-5 h-5" />
                       Commande payée - Merci !
@@ -1107,6 +1135,35 @@ export const ClientView: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Table Selection */}
+              <div className="pt-2">
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest flex items-center gap-2">
+                  <MapPin className="w-3 h-3" />
+                  Choisissez votre table
+                </label>
+                {loadingTables ? (
+                  <div className="flex justify-center py-4"><Loader className="w-5 h-5 animate-spin text-[#FC8A06]" /></div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                    {tables.map(table => (
+                      <button
+                        key={table.id}
+                        disabled={table.statut !== TableStatus.LIBRE && selectedTable !== table.id}
+                        onClick={() => setSelectedTable(table.id)}
+                        className={`h-10 rounded-xl font-black text-sm transition-all border-2 ${selectedTable === table.id
+                          ? 'bg-[#FC8A06] border-[#FC8A06] text-white shadow-lg shadow-orange-200 scale-105'
+                          : table.statut === TableStatus.LIBRE
+                            ? 'bg-white border-green-100 text-green-600 hover:border-green-300 hover:bg-green-50'
+                            : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                          }`}
+                      >
+                        {table.numero_table}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Summary */}
@@ -1205,6 +1262,30 @@ export const ClientView: React.FC = () => {
                   placeholder="Allergie, demande spéciale..."
                   className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-[1.2rem] h-24 outline-none focus:border-[#FC8A06] resize-none font-medium transition-all"
                 />
+              </div>
+
+              {/* Table Selection for Reservation */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Table souhaitée</label>
+                {loadingTables ? (
+                  <div className="flex justify-center py-4"><Loader className="w-5 h-5 animate-spin text-[#FC8A06]" /></div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                    {tables.map(table => (
+                      <button
+                        key={table.id}
+                        type="button"
+                        onClick={() => setSelectedTable(table.id)}
+                        className={`h-10 rounded-xl font-black text-sm transition-all border-2 ${selectedTable === table.id
+                          ? 'bg-[#FC8A06] border-[#FC8A06] text-white shadow-lg shadow-orange-200'
+                          : 'bg-white border-gray-200 hover:border-gray-300 text-gray-600'
+                          }`}
+                      >
+                        {table.numero_table}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Submit */}
@@ -1464,12 +1545,12 @@ export const ClientView: React.FC = () => {
                       {new Date(res.date_reservation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <p className="text-sm text-gray-500">{res.nombre_personnes} personnes</p>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block ${res.statut === 'CONFIRMEE' ? 'bg-green-100 text-green-700' :
-                      res.statut === 'ANNULEE' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}>{res.statut}</span>
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block ${res.status === 'CONFIRMEE' ? 'bg-green-100 text-green-700' :
+                      res.status === 'ANNULEE' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>{res.status}</span>
                   </div>
                   <div className="flex gap-2">
-                    {res.statut !== 'ANNULEE' && (
+                    {res.status !== 'ANNULEE' && (
                       <>
                         <button
                           onClick={() => openEditReservation(res)}
@@ -1517,9 +1598,9 @@ export const ClientView: React.FC = () => {
                       <span className="text-xs text-gray-500">{new Date(order.date_commande || '').toLocaleDateString('fr-FR')}</span>
                     </div>
                     <p className="font-bold text-[#FC8A06]">{formatPrice(order.montant_total)} FCFA</p>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block ${order.statut === OrderStatus.PAYEE ? 'bg-green-100 text-green-700' :
-                      order.statut === OrderStatus.ANNULEE ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
-                      }`}>{order.statut}</span>
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block ${order.status === OrderStatus.PAYEE ? 'bg-green-100 text-green-700' :
+                      order.status === OrderStatus.ANNULEE ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                      }`}>{order.status}</span>
                   </div>
                   <button
                     onClick={() => viewOrderDetails(order)}

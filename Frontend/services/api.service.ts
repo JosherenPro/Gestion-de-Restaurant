@@ -60,7 +60,7 @@ class ApiService {
   async get<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { token, ...fetchOptions } = options;
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const id = setTimeout(() => controller.abort(), 30000); // 30s timeout
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...fetchOptions,
@@ -246,6 +246,10 @@ class ApiService {
 
   async validerCommande(commandeId: number, serveurId: number, token: string): Promise<any> {
     return this.post(`${API_CONFIG.ENDPOINTS.COMMANDES.VALIDER(commandeId)}?serveur_id=${serveurId}`, {}, { token });
+  }
+
+  async refuserCommande(commandeId: number, serveurId: number, raison: string, token: string): Promise<any> {
+    return this.post(`${API_CONFIG.ENDPOINTS.COMMANDES.REFUSER(commandeId)}?serveur_id=${serveurId}`, { raison }, { token });
   }
 
   async preparerCommande(commandeId: number, token: string): Promise<any> {
