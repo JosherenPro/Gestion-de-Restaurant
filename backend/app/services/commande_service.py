@@ -91,11 +91,39 @@ def valider_commande(session: Session, commande_id: int, serveur_id: int) -> Com
     if not commande:
         return None
     
-    if commande.status != CommandeStatus.EN_ATTENTE:
-        raise ValueError(f"Impossible de valider une commande avec le statut: {commande.status}")
+    curr_status = commande.status
+    if curr_status == CommandeStatus.APPROUVEE:
+        # Idempotency: Already approved, update server if needed but don't error
+        if commande.serveur_id != serveur_id:
+             commande.serveur_id = serveur_id
+             session.add(commande)
+             session.commit()
+             session.refresh(commande)
+        return commande
+
+    if curr_status != CommandeStatus.EN_ATTENTE:
+        raise ValueError(f"Impossible de valider une commande avec le statut: {curr_status}")
     
     commande.status = CommandeStatus.APPROUVEE
     commande.serveur_id = serveur_id
+    
+    session.add(commande)
+    session.commit()
+    session.refresh(commande)
+    return commande
+
+def refuser_commande(session: Session, commande_id: int, serveur_id: int, raison: str) -> Commande | None:
+    """Refuser une commande (EN_ATTENTE -> ANNULEE)."""
+    commande = session.get(Commande, commande_id)
+    if not commande:
+        return None
+    
+    if commande.status != CommandeStatus.EN_ATTENTE:
+        raise ValueError(f"Impossible de refuser une commande avec le statut: {commande.status}")
+    
+    commande.status = CommandeStatus.ANNULEE
+    commande.serveur_id = serveur_id
+    commande.notes = f"{commande.notes or ''} [Refusée: {raison}]".strip()
     
     session.add(commande)
     session.commit()

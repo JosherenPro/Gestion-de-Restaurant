@@ -322,7 +322,7 @@ export const GerantViewConnected: React.FC = () => {
                     // Normaliser les réservations
                     const normalizedReservations = (reservationsData || []).map((res: any) => ({
                         ...res,
-                        statut: (res.statut || res.status || 'EN_ATTENTE').toUpperCase()
+                        status: (res.statut || res.status || 'EN_ATTENTE').toUpperCase()
                     }));
                     setReservations(normalizedReservations);
                     setPersonnel(personnelData);
@@ -666,7 +666,7 @@ export const GerantViewConnected: React.FC = () => {
                                             <div className="space-y-4 relative z-10 max-h-[300px] overflow-y-auto no-scrollbar">
                                                 {allCommandes.slice(0, 4).map((cmd, i) => (
                                                     <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/item">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cmd.statut === 'en_attente' ? 'bg-orange-500' : 'bg-emerald-500'
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cmd.status === 'en_attente' ? 'bg-orange-500' : 'bg-emerald-500'
                                                             }`}>
                                                             <Clock size={16} className="text-white" />
                                                         </div>
@@ -728,12 +728,12 @@ export const GerantViewConnected: React.FC = () => {
                                                     <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                                         <Calendar size={20} />
                                                     </div>
-                                                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter ${res.statut === 'CONFIRMEE' ? 'bg-emerald-50 text-emerald-600' :
-                                                            res.statut === 'EN_ATTENTE' ? 'bg-yellow-50 text-yellow-600' :
-                                                                'bg-gray-50 text-gray-400'
+                                                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter ${res.status === 'CONFIRMEE' ? 'bg-emerald-50 text-emerald-600' :
+                                                        res.status === 'EN_ATTENTE' ? 'bg-yellow-50 text-yellow-600' :
+                                                            'bg-gray-50 text-gray-400'
                                                         }`}>
-                                                        {res.statut === 'CONFIRMEE' ? 'Confirmé' :
-                                                            res.statut === 'EN_ATTENTE' ? 'En attente' : 'Annulé'}
+                                                        {res.status === 'CONFIRMEE' ? 'Confirmé' :
+                                                            res.status === 'EN_ATTENTE' ? 'En attente' : 'Annulé'}
                                                     </span>
                                                 </div>
                                                 <div>
@@ -877,10 +877,10 @@ export const GerantViewConnected: React.FC = () => {
                                         >
                                             <div className="flex items-center gap-5">
                                                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-[#FC8A06] border border-gray-100 font-black text-xl">
-                                                    {cat.nom[0].toUpperCase()}
+                                                    {(cat.nom?.[0] || '?').toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-black text-[#03081F] uppercase tracking-tighter">{cat.nom}</h4>
+                                                    <h4 className="font-black text-[#03081F] uppercase tracking-tighter">{cat.nom || 'Sans nom'}</h4>
                                                     <p className="text-xs text-gray-400 font-medium line-clamp-1 max-w-[200px] md:max-w-md">{cat.description || 'Catégorie de mets savoureux.'}</p>
                                                 </div>
                                             </div>

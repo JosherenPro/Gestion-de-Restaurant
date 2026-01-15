@@ -74,8 +74,8 @@ export const ChefViewConnected: React.FC = () => {
     }
   };
 
-  const aPreparer = orders.filter(o => o.statut === OrderStatus.VALIDEE || o.statut === OrderStatus.EN_ATTENTE_VALIDATION);
-  const enPreparation = orders.filter(o => o.statut === OrderStatus.EN_COURS);
+  const aPreparer = orders.filter(o => o.status === OrderStatus.VALIDEE || o.status === OrderStatus.EN_ATTENTE_VALIDATION);
+  const enPreparation = orders.filter(o => o.status === OrderStatus.EN_COURS);
 
   if (loading) {
     return (

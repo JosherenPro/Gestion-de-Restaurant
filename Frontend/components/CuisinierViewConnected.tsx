@@ -7,7 +7,7 @@ import { formatPrice } from '../mockData';
 import { useAuth } from '../context/AuthContext';
 
 export const CuisinierViewConnected: React.FC = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, token } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [activeTab, setActiveTab] = useState<'COMMANDES' | 'STOCK'>('COMMANDES');
@@ -15,26 +15,55 @@ export const CuisinierViewConnected: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Mock cuisinier ID
-  const CUISINIER_ID = 1;
+  // Use real user ID
+  const CUISINIER_ID = user?.id || 0;
+
+  // Sound effect ref
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const previousOrderCountRef = React.useRef(0);
+  const isFirstLoad = React.useRef(true);
 
   useEffect(() => {
-    loadData();
-    // Refresh every 20 seconds
-    const interval = setInterval(loadData, 20000);
-    return () => clearInterval(interval);
-  }, []);
+    // Initialize audio
+    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // A loud "Kitchen Order" bell
+
+    if (user) {
+      loadData();
+      const interval = setInterval(loadData, 10000); // Faster refresh for kitchen
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
       const [commandesData, platsData] = await Promise.all([
-        apiService.getCommandes(),
-        apiService.getPlats()
+        apiService.getCommandes(token),
+        apiService.getPlats(token)
       ]);
       setOrders(commandesData);
       setMenu(platsData);
+
+      // Check for new orders to play sound
+      const newOrdersCount = commandesData.filter(o => o.status === OrderStatus.VALIDEE).length;
+
+      if (!isFirstLoad.current) {
+        if (newOrdersCount > previousOrderCountRef.current) {
+          // Play sound
+          try {
+            if (audioRef.current) {
+              audioRef.current.volume = 1.0;
+              audioRef.current.play().catch(e => console.log("Audio play failed", e));
+            }
+          } catch (e) { }
+        }
+      } else {
+        isFirstLoad.current = false;
+      }
+
+      previousOrderCountRef.current = newOrdersCount;
+
     } catch (err: any) {
       console.error('Error loading data:', err);
       setError(err.message || 'Erreur lors du chargement des données');
@@ -46,8 +75,11 @@ export const CuisinierViewConnected: React.FC = () => {
   const startPreparing = async (orderId: number) => {
     try {
       setActionLoading(true);
-      await apiService.preparerCommande(orderId, 'mock-token');
-      await loadData();
+      setActionLoading(true);
+      if (token) {
+        await apiService.preparerCommande(orderId, token);
+        await loadData();
+      }
     } catch (err: any) {
       alert('Erreur: ' + err.message);
     } finally {
@@ -58,8 +90,11 @@ export const CuisinierViewConnected: React.FC = () => {
   const markAsReady = async (orderId: number) => {
     try {
       setActionLoading(true);
-      await apiService.commandePrete(orderId, CUISINIER_ID, 'mock-token');
-      await loadData();
+      setActionLoading(true);
+      if (token) {
+        await apiService.commandePrete(orderId, CUISINIER_ID, token);
+        await loadData();
+      }
     } catch (err: any) {
       alert('Erreur: ' + err.message);
     } finally {
@@ -70,10 +105,11 @@ export const CuisinierViewConnected: React.FC = () => {
   const toggleAvailability = async (platId: number, currentStatus: boolean) => {
     try {
       setActionLoading(true);
-      // Note: L'API n'a pas d'endpoint spécifique pour changer la disponibilité
-      // Vous devrez peut-être l'ajouter au backend
-      await apiService.put(`/plats/${platId}`, { disponible: !currentStatus }, { token: 'mock-token' });
-      await loadData();
+      setActionLoading(true);
+      if (token) {
+        await apiService.updatePlat(platId, { disponible: !currentStatus }, token);
+        await loadData();
+      }
     } catch (err: any) {
       alert('Erreur: ' + err.message);
     } finally {
@@ -82,11 +118,11 @@ export const CuisinierViewConnected: React.FC = () => {
   };
 
   const aPreparer = orders.filter(o =>
-    o.statut === OrderStatus.VALIDEE
+    o.status === OrderStatus.VALIDEE
   );
 
   const enPreparation = orders.filter(o =>
-    o.statut === OrderStatus.EN_COURS
+    o.status === OrderStatus.EN_COURS
   );
 
   if (loading) {
@@ -196,27 +232,37 @@ export const CuisinierViewConnected: React.FC = () => {
               ) : (
                 aPreparer.map(order => {
                   const tableNum = order.table_id || '?';
+                  const waitTime = order.created_at ? Math.round((new Date().getTime() - new Date(order.created_at).getTime()) / 60000) : 0;
+
+                  // KDS Color Logic
+                  let borderColor = 'border-blue-100';
+                  let bgColor = 'bg-white';
+                  let timerColor = 'text-blue-600 bg-blue-50';
+
+                  if (waitTime > 20) {
+                    borderColor = 'border-red-500 border-4';
+                    timerColor = 'text-white bg-red-500 animate-pulse';
+                  } else if (waitTime > 10) {
+                    borderColor = 'border-yellow-400 border-4';
+                    timerColor = 'text-yellow-700 bg-yellow-100';
+                  }
+
                   return (
                     <Card
                       key={order.id}
-                      className="p-6 md:p-8 border-none rounded-[2.5rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_70px_rgba(59,130,246,0.1)] transition-all duration-500 animate-in slide-in-from-bottom-5"
+                      className={`p-6 md:p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_70px_rgba(59,130,246,0.1)] transition-all duration-500 animate-in slide-in-from-bottom-5 ${borderColor} ${bgColor}`}
                     >
                       <div className="flex justify-between items-start mb-8">
                         <div className="flex items-center gap-5">
-                          <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white w-14 h-14 md:w-16 md:h-16 rounded-[1.5rem] flex items-center justify-center font-black text-2xl md:text-3xl shadow-xl shadow-blue-500/30 ring-4 ring-blue-50">
+                          <div className="bg-[#03081F] text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-xl shadow-blue-900/20">
                             T{tableNum}
                           </div>
                           <div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Ticket Cuisine</span>
-                            <span className="font-black text-2xl md:text-3xl text-[#03081F]">#{order.id}</span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Ticket #{order.id}</span>
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg font-black text-xs ${timerColor}`}>
+                              <Timer size={14} /> {waitTime} min
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs font-black text-blue-600 bg-blue-50 px-4 py-2 rounded-xl flex items-center gap-2 border border-blue-100 shadow-sm">
-                            <Timer size={14} />
-                            {order.created_at ? new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                          </span>
-                          <span className="text-[9px] font-bold text-gray-300 uppercase">Depuis {order.created_at ? Math.round((new Date().getTime() - new Date(order.created_at).getTime()) / 60000) : 0} min</span>
                         </div>
                       </div>
 
@@ -224,10 +270,10 @@ export const CuisinierViewConnected: React.FC = () => {
                         {order.lignes?.map((ligne) => (
                           <div
                             key={ligne.id}
-                            className="flex justify-between items-center bg-gray-50/50 p-5 rounded-[1.5rem] border border-gray-100/50 group/item hover:bg-blue-50/30 transition-colors duration-300"
+                            className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100"
                           >
                             <span className="font-black text-xl text-[#03081F] flex items-center">
-                              <span className="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg mr-5 shadow-lg shadow-blue-500/20 ring-4 ring-white group-hover/item:scale-110 transition-transform">{ligne.quantite}</span>
+                              <span className="bg-[#FC8A06] text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg mr-4 shadow-lg shadow-orange-500/20">{ligne.quantite}</span>
                               {ligne.plat?.nom}
                             </span>
                           </div>
@@ -238,11 +284,10 @@ export const CuisinierViewConnected: React.FC = () => {
                         fullWidth
                         onClick={() => startPreparing(order.id)}
                         variant="primary"
-                        className="h-16 rounded-[1.5rem] shadow-2xl shadow-blue-500/30 text-base font-black relative overflow-hidden group/btn border-none"
+                        className="h-20 rounded-[1.5rem] shadow-xl shadow-blue-900/10 text-lg font-black uppercase tracking-widest bg-[#03081F] hover:bg-blue-900 border-none"
                         disabled={actionLoading}
                       >
-                        <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
-                        {actionLoading ? <Loader className="w-6 h-6 animate-spin" /> : <div className="flex items-center gap-3"><Play size={20} fill="currentColor" /> LANCER LE FEU</div>}
+                        {actionLoading ? <Loader className="w-8 h-8 animate-spin" /> : <div className="flex items-center gap-3"><Play size={24} fill="currentColor" /> LANCER (Feu)</div>}
                       </Button>
                     </Card>
                   );
@@ -382,8 +427,8 @@ export const CuisinierViewConnected: React.FC = () => {
                   fullWidth
                   variant={plat.disponible ? 'outline' : 'success'}
                   className={`h-14 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 ${plat.disponible
-                      ? 'border-gray-200 hover:border-[#03081F] hover:bg-[#03081F] hover:text-white'
-                      : 'bg-green-500 text-white shadow-xl shadow-green-500/30'
+                    ? 'border-gray-200 hover:border-[#03081F] hover:bg-[#03081F] hover:text-white'
+                    : 'bg-green-500 text-white shadow-xl shadow-green-500/30'
                     }`}
                   onClick={() => toggleAvailability(plat.id, plat.disponible)}
                   disabled={actionLoading}

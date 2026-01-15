@@ -61,12 +61,13 @@ export interface Order {
   client_id: number;
   table_id: number;
   type_commande: TypeCommande;
-  statut: OrderStatus;
+  status: OrderStatus;
   montant_total: number;
   notes?: string;
   lignes?: OrderItem[];
   created_at?: string;
   updated_at?: string;
+  date_commande?: string;
 }
 
 export interface Table {
@@ -94,7 +95,7 @@ export interface Reservation {
   table_id: number;
   date_reservation: string;
   nombre_personnes: number;
-  statut: 'EN_ATTENTE' | 'CONFIRMEE' | 'ANNULEE';
+  status: 'EN_ATTENTE' | 'CONFIRMEE' | 'ANNULEE';
   notes?: string;
 }
 

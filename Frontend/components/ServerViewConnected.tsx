@@ -4,7 +4,7 @@ import { apiService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import { Order, OrderStatus, Table, TableStatus } from '../types';
 import { Card, Button, Badge, Modal } from './UI';
-import { LayoutGrid, ClipboardList, UserPlus, CheckCircle2, ChevronRight, Plus, Minus, Loader, RefreshCcw, LogOut, ChefHat, Bell, BellRing } from 'lucide-react';
+import { LayoutGrid, ClipboardList, UserPlus, CheckCircle2, ChevronRight, Plus, Minus, Loader, RefreshCcw, LogOut, ChefHat, Bell, BellRing, Timer, XCircle } from 'lucide-react';
 import { formatPrice } from '../mockData';
 
 export const ServerViewConnected: React.FC = () => {
@@ -25,7 +25,15 @@ export const ServerViewConnected: React.FC = () => {
   const [hasNewPendingOrders, setHasNewPendingOrders] = useState(false);
   const previousPendingCountRef = useRef(0);
 
+  // Refusal State
+  const [isRefuseOpen, setIsRefuseOpen] = useState(false);
+  const [refuseReason, setRefuseReason] = useState('');
+  const [orderToRefuse, setOrderToRefuse] = useState<Order | null>(null);
+  const [refuseLoading, setRefuseLoading] = useState(false);
+
   const loadingRef = React.useRef(false);
+  const isFirstLoad = React.useRef(true);
+
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 5000); // Refresh every 5 seconds
@@ -33,21 +41,19 @@ export const ServerViewConnected: React.FC = () => {
   }, [token]);
 
   const loadData = async () => {
-    if (!token || loadingRef.current) {
-      //       setLoading(false); // Do not force false here, let the initial load handle it
-      if (!token) setLoading(false);
+    if (!token) {
+      setLoading(false);
       return;
     }
+    if (loadingRef.current) return;
     loadingRef.current = true;
 
     try {
-      console.log('Fetching data with config:', API_CONFIG);
-      console.log('Token present:', !!token);
       const [tablesData, commandesData, platsData, categoriesData] = await Promise.all([
-        apiService.getTables(token).then(res => { console.log('Tables loaded'); return res; }),
-        apiService.getCommandes(token).then(res => { console.log('Commandes loaded'); return res; }),
-        apiService.getPlats(token).then(res => { console.log('Plats loaded'); return res; }),
-        apiService.getCategories(token).then(res => { console.log('Categories loaded'); return res; })
+        apiService.getTables(token),
+        apiService.getCommandes(token),
+        apiService.getPlats(token),
+        apiService.getCategories(token)
       ]);
 
       setTables(tablesData);
@@ -57,22 +63,26 @@ export const ServerViewConnected: React.FC = () => {
 
       // Check for new pending orders
       const currentPendingCount = commandesData.filter(
-        (o: Order) => o.statut === OrderStatus.EN_ATTENTE_VALIDATION
+        (o: Order) => o.status === OrderStatus.EN_ATTENTE_VALIDATION
       ).length;
 
       setPendingOrdersCount(currentPendingCount);
 
-      // If there are more pending orders than before, trigger notification
-      if (currentPendingCount > previousPendingCountRef.current && previousPendingCountRef.current >= 0) {
-        setHasNewPendingOrders(true);
-        // Play notification sound
-        try {
-          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAoAEoKshpFoS0VwqNXPmWQdBTeS0NesewgAF4yyj5dvT0hxptHPmWYfBjaN0NaseQcAGY+1k5lzVEtuptDOmGYfBjaN0NaseQcA');
-          audio.volume = 0.5;
-          audio.play().catch(() => { });
-        } catch (e) { }
-        // Clear notification after 5 seconds
-        setTimeout(() => setHasNewPendingOrders(false), 5000);
+      // Notification logic
+      if (!isFirstLoad.current) {
+        if (currentPendingCount > previousPendingCountRef.current) {
+          setHasNewPendingOrders(true);
+          // Play notification sound
+          try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAoAEoKshpFoS0VwqNXPmWQdBTeS0NesewgAF4yyj5dvT0hxptHPmWYfBjaN0NaseQcAGY+1k5lzVEtuptDOmGYfBjaN0NaseQcA');
+            audio.volume = 0.5;
+            audio.play().catch(() => { });
+          } catch (e) { }
+          // Clear notification after 5 seconds
+          setTimeout(() => setHasNewPendingOrders(false), 5000);
+        }
+      } else {
+        isFirstLoad.current = false;
       }
 
       previousPendingCountRef.current = currentPendingCount;
@@ -105,6 +115,28 @@ export const ServerViewConnected: React.FC = () => {
       loadData();
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  const openRefuseModal = (order: Order) => {
+    setOrderToRefuse(order);
+    setRefuseReason('');
+    setIsRefuseOpen(true);
+  };
+
+  const submitRefusal = async () => {
+    if (!token || !user || !orderToRefuse) return;
+
+    setRefuseLoading(true);
+    try {
+      await apiService.refuserCommande(orderToRefuse.id, user.id, refuseReason || 'Aucune raison spécifiée', token);
+      setIsRefuseOpen(false);
+      setOrderToRefuse(null);
+      loadData();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setRefuseLoading(false);
     }
   };
 
@@ -244,34 +276,61 @@ export const ServerViewConnected: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
-              {tables.map(table => (
-                <button
-                  key={table.id}
-                  onClick={() => setSelectedTable(table)}
-                  className={`p-8 rounded-[2.5rem] border-4 transition-all flex flex-col items-center justify-center gap-3 aspect-square relative group overflow-hidden ${selectedTable?.id === table.id
-                    ? 'border-[#FC8A06] bg-white shadow-2xl shadow-orange-500/10 scale-[1.03]'
-                    : table.statut === TableStatus.OCCUPEE
-                      ? 'border-emerald-50 bg-emerald-50/50 text-emerald-600'
-                      : 'border-gray-50 bg-gray-50/50 text-gray-300'
-                    }`}
-                >
-                  <div className={`p-4 rounded-2xl mb-1 shadow-lg transition-transform group-active:scale-95 ${selectedTable?.id === table.id ? 'bg-[#FC8A06] text-white' :
-                    table.statut === TableStatus.OCCUPEE ? 'bg-emerald-500 text-white' : 'bg-white text-gray-200'
-                    }`}>
-                    {table.statut === TableStatus.OCCUPEE ? <LayoutGrid size={24} /> : <UserPlus size={24} />}
-                  </div>
-                  <span className="font-black text-3xl tracking-tighter">T{table.numero_table}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60 text-center">{table.capacite} PERSONNES</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {tables.map(table => {
+                // Find order for this table to determine status details
+                const tableOrder = orders.find(o => o.table_id === table.id && o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE);
+                const isOccupied = table.statut === TableStatus.OCCUPEE;
+                const timeOccupied = tableOrder?.created_at ? Math.round((new Date().getTime() - new Date(tableOrder.created_at).getTime()) / 60000) : 0;
 
-                  {table.statut === TableStatus.OCCUPEE && (
-                    <div className="absolute top-4 right-4 w-4 h-4 bg-emerald-500 rounded-full border-4 border-white animate-pulse shadow-sm"></div>
-                  )}
-                  {selectedTable?.id === table.id && (
-                    <div className="absolute inset-0 bg-transparent border-[6px] border-[#FC8A06] rounded-[2.5rem] pointer-events-none"></div>
-                  )}
-                </button>
-              ))}
+                return (
+                  <button
+                    key={table.id}
+                    onClick={() => setSelectedTable(table)}
+                    className={`p-6 md:p-8 rounded-[2rem] border-[3px] transition-all flex flex-col items-center justify-between gap-4 aspect-square relative group overflow-hidden ${selectedTable?.id === table.id
+                      ? 'border-[#FC8A06] bg-white shadow-2xl shadow-orange-500/10 scale-[1.02] z-10'
+                      : isOccupied
+                        ? 'border-emerald-100 bg-white ring-4 ring-emerald-50/50 shadow-xl shadow-emerald-100'
+                        : 'border-white bg-white shadow-lg shadow-gray-100/50 hover:shadow-xl hover:-translate-y-1'
+                      }`}
+                  >
+                    <div className="w-full flex justify-between items-start">
+                      <div className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${isOccupied
+                        ? 'bg-emerald-100 text-emerald-600'
+                        : 'bg-gray-100 text-gray-400'
+                        }`}>
+                        {isOccupied ? 'Occupé' : 'Libre'}
+                      </div>
+                      {isOccupied && (
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+                          <Timer size={12} />
+                          <span>{timeOccupied}m</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-center">
+                      <span className="font-black text-4xl text-[#03081F] tracking-tighter block mb-1">T{table.numero_table}</span>
+                      <div className="flex items-center justify-center gap-2 text-gray-300">
+                        <UserPlus size={14} />
+                        <span className="text-xs font-bold">{table.capacite}p</span>
+                      </div>
+                    </div>
+
+                    {isOccupied && tableOrder && (
+                      <div className="w-full pt-4 border-t border-gray-50 flex items-center justify-between gap-2">
+                        <Badge status={tableOrder.status} />
+                        <span className="text-[10px] font-black text-[#03081F]">{tableOrder.montant_total?.toLocaleString()} F</span>
+                      </div>
+                    )}
+
+                    {/* Selection Indicator */}
+                    {selectedTable?.id === table.id && (
+                      <div className="absolute inset-0 border-[6px] border-[#FC8A06] rounded-[2rem] pointer-events-none animate-in fade-in duration-200"></div>
+                    )}
+                  </button>
+                )
+              })}
             </div>
 
             {selectedTable && (
@@ -284,8 +343,8 @@ export const ServerViewConnected: React.FC = () => {
                     <div>
                       <h3 className="font-black text-2xl tracking-tighter uppercase">Table {selectedTable.numero_table}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${selectedTable.statut === TableStatus.LIBRE ? 'bg-emerald-500' : 'bg-orange-500'}`}></div>
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{selectedTable.statut}</p>
+                        <div className={`w-2 h-2 rounded-full ${selectedTable.statut === TableStatus.LIBRE ? 'bg-emerald-500' : 'bg-[#FC8A06]'}`}></div>
+                        <p className="text-[10px] font-black uppercase tracking-widest">{selectedTable.statut}</p>
                       </div>
                     </div>
                   </div>
@@ -342,21 +401,21 @@ export const ServerViewConnected: React.FC = () => {
                 </div>
               </div>
               <div className="bg-blue-50 text-blue-600 px-5 py-2.5 rounded-2xl text-[10px] font-black flex items-center gap-2 uppercase tracking-widest border border-blue-100 italic">
-                {orders.filter(o => o.statut !== OrderStatus.SERVIE && o.statut !== OrderStatus.PAYEE).length} Actives
+                {orders.filter(o => o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE).length} Actives
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
               {orders
-                .filter(o => o.statut !== OrderStatus.SERVIE && o.statut !== OrderStatus.PAYEE)
+                .filter(o => o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE)
                 .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
                 .map(order => (
                   <Card key={order.id} className="p-0 border-none rounded-[2.5rem] bg-white shadow-xl shadow-gray-100 overflow-hidden relative group hover:shadow-2xl transition-all duration-500 border border-gray-50">
                     <div className="p-6 md:p-8">
                       <div className="flex justify-between items-start mb-6">
                         <div className="flex gap-5">
-                          <div className={`w-20 h-20 rounded-3xl flex items-center justify-center font-black text-3xl shadow-xl transition-transform group-hover:scale-110 ${order.statut === OrderStatus.PRETE ? 'bg-emerald-500 text-white shadow-emerald-200' :
-                            order.statut === OrderStatus.EN_ATTENTE_VALIDATION ? 'bg-[#03081F] text-white shadow-blue-900/20' :
+                          <div className={`w-20 h-20 rounded-3xl flex items-center justify-center font-black text-3xl shadow-xl transition-transform group-hover:scale-110 ${order.status === OrderStatus.PRETE ? 'bg-emerald-500 text-white shadow-emerald-200' :
+                            order.status === OrderStatus.EN_ATTENTE_VALIDATION ? 'bg-[#03081F] text-white shadow-blue-900/20' :
                               'bg-gray-100 text-gray-400'
                             }`}>
                             T{order.table_id || '?'}
@@ -364,10 +423,10 @@ export const ServerViewConnected: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-3">
                               <h3 className="font-black text-2xl text-[#03081F] tracking-tighter italic">#{order.id}</h3>
-                              <Badge status={order.statut} />
+                              <Badge status={order.status} />
                             </div>
                             <div className="flex items-center gap-3 mt-1.5 font-bold tracking-widest text-[9px] text-gray-400 uppercase">
-                              <span>{order.created_at ? new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                              <span>{(order.date_commande || order.created_at) ? new Date(order.date_commande || order.created_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
                               <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
                               <span className="text-[#FC8A06] font-black">{order.montant_total?.toLocaleString()} CFA</span>
                             </div>
@@ -422,17 +481,26 @@ export const ServerViewConnected: React.FC = () => {
                       </div>
 
                       <div className="flex gap-3">
-                        {order.statut === OrderStatus.EN_ATTENTE_VALIDATION && (
-                          <Button
-                            fullWidth
-                            onClick={() => approveOrder(order.id)}
-                            variant="primary"
-                            className="h-16 rounded-[1.2rem] font-black text-xs shadow-xl shadow-orange-500/10 uppercase tracking-widest"
-                          >
-                            <CheckCircle2 size={18} className="mr-2" /> Transmettre en Cuisine
-                          </Button>
+                        {order.status === OrderStatus.EN_ATTENTE_VALIDATION && (
+                          <div className="flex gap-2 w-full">
+                            <Button
+                              onClick={() => openRefuseModal(order)}
+                              variant="outline"
+                              className="h-16 w-16 rounded-[1.2rem] border-red-100 bg-red-50 text-red-500 flex-shrink-0 flex items-center justify-center hover:bg-red-100 hover:border-red-200 transition-colors"
+                            >
+                              <XCircle size={24} />
+                            </Button>
+                            <Button
+                              fullWidth
+                              onClick={() => approveOrder(order.id)}
+                              variant="primary"
+                              className="h-16 rounded-[1.2rem] font-black text-xs shadow-xl shadow-orange-500/10 uppercase tracking-widest flex-1"
+                            >
+                              <CheckCircle2 size={18} className="mr-2" /> Transmettre en Cuisine
+                            </Button>
+                          </div>
                         )}
-                        {order.statut === OrderStatus.PRETE && (
+                        {order.status === OrderStatus.PRETE && (
                           <Button
                             fullWidth
                             onClick={() => markServed(order.id)}
@@ -450,7 +518,7 @@ export const ServerViewConnected: React.FC = () => {
                   </Card>
                 ))}
 
-              {orders.filter(o => o.statut !== OrderStatus.SERVIE && o.statut !== OrderStatus.PAYEE).length === 0 && (
+              {orders.filter(o => o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE).length === 0 && (
                 <div className="col-span-full py-32 flex flex-col items-center justify-center text-center">
                   <div className="w-24 h-24 bg-gray-50 rounded-[2.5rem] flex items-center justify-center text-gray-200 mb-6">
                     <ClipboardList size={48} strokeWidth={1} />
@@ -496,7 +564,7 @@ export const ServerViewConnected: React.FC = () => {
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${activeView === 'COMMANDES' ? 'bg-blue-50 shadow-inner' : ''}`}>
             <div className="relative">
               <ClipboardList size={activeView === 'COMMANDES' ? 24 : 22} strokeWidth={activeView === 'COMMANDES' ? 2.5 : 2} />
-              {orders.filter(o => o.statut === OrderStatus.PRETE).length > 0 && (
+              {orders.filter(o => o.status === OrderStatus.PRETE).length > 0 && (
                 <div className="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center animate-bounce">
                   <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                 </div>
@@ -554,7 +622,7 @@ export const ServerViewConnected: React.FC = () => {
             </div>
           </div>
 
-          <div className="max-h-[35vh] overflow-y-auto grid grid-cols-1 gap-3 pr-2 scrollbar-thin">
+          <div className="max-h-[50vh] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pr-2 scrollbar-thin">
             {plats
               .filter(p => p.disponible)
               .filter(p => activeCategory === 'ALL' || p.categorie_id === activeCategory)
@@ -563,19 +631,19 @@ export const ServerViewConnected: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => addToManual(item)}
-                  className="flex items-center justify-between bg-white p-4 rounded-3xl border-2 border-gray-50 hover:border-[#FC8A06] hover:bg-orange-50/30 transition-all group active:scale-[0.98]"
+                  className="flex items-center justify-between bg-white p-3 rounded-2xl border-2 border-gray-50 hover:border-[#FC8A06] hover:bg-orange-50/10 transition-all group active:scale-[0.98]"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gray-50 rounded-2xl overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
                       <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover" />
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-[#03081F] text-sm uppercase tracking-tighter">{item.nom}</p>
-                      <p className="text-[10px] text-[#FC8A06] font-black mt-0.5 tracking-widest">{item.prix?.toLocaleString()} CFA</p>
+                      <p className="font-bold text-[#03081F] text-xs uppercase tracking-tight line-clamp-1">{item.nom}</p>
+                      <p className="text-[10px] text-[#FC8A06] font-black mt-0.5 tracking-widest">{item.prix?.toLocaleString()} F</p>
                     </div>
                   </div>
-                  <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-[#FC8A06] group-hover:text-white transition-all shadow-sm">
-                    <Plus size={18} strokeWidth={3} />
+                  <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:bg-[#FC8A06] group-hover:text-white transition-all shadow-sm">
+                    <Plus size={16} strokeWidth={3} />
                   </div>
                 </button>
               ))}
@@ -635,6 +703,44 @@ export const ServerViewConnected: React.FC = () => {
                 {manualBasket.reduce((a, b) => a + b.prix * b.quantite, 0).toLocaleString()} CFA
               </span>
               <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 scale-x-0 group-active:scale-x-100 transition-transform origin-left"></div>
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Refusal Modal */}
+      <Modal isOpen={isRefuseOpen} onClose={() => setIsRefuseOpen(false)} title="">
+        <div className="p-4">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <XCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-black text-[#03081F] mb-1">Refuser la commande</h3>
+            <p className="text-gray-500 text-sm">Veuillez indiquer le motif du refus</p>
+          </div>
+
+          <textarea
+            value={refuseReason}
+            onChange={(e) => setRefuseReason(e.target.value)}
+            placeholder="Ex: Rupture de stock, Problème technique..."
+            className="w-full h-32 bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 mb-6 outline-none focus:border-red-500 transition-all font-medium text-sm resize-none"
+          />
+
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => setIsRefuseOpen(false)}
+              className="flex-1 h-14 rounded-2xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-500"
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="outline"
+              onClick={submitRefusal}
+              disabled={refuseLoading}
+              className="flex-1 h-14 rounded-2xl font-bold bg-red-500 hover:bg-red-600 text-white border-none shadow-lg shadow-red-500/30"
+            >
+              {refuseLoading ? <Loader className="animate-spin" /> : 'Refuser définitivement'}
             </Button>
           </div>
         </div>

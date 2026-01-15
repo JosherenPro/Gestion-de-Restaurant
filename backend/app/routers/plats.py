@@ -18,7 +18,7 @@ from app.schemas.plat import (
     PlatUpdate
 )
 
-from app.security.rbac import allow_gerant
+from app.security.rbac import allow_gerant, allow_gerant_or_cuisinier
 
 router = APIRouter(
     prefix="/plats",
@@ -78,7 +78,7 @@ async def delete_plat_endpoint(
     return plat
 
 
-@router.put("/{plat_id}", response_model=PlatRead, dependencies=[Depends(allow_gerant)])
+@router.put("/{plat_id}", response_model=PlatRead, dependencies=[Depends(allow_gerant_or_cuisinier)])
 async def update_plat_endpoint(
     session: Session = Depends(get_session),
     plat_id: int = Path(...),
