@@ -51,6 +51,11 @@ def list_clients(session: Session, skip: int = 0, limit: int = 100) -> List[Clie
     statement = select(Client).offset(skip).limit(limit)
     return session.exec(statement).all()
 
+def get_client_by_utilisateur_id(session: Session, utilisateur_id: int) -> Client | None:
+    """Récupérer un client par son ID utilisateur."""
+    statement = select(Client).where(Client.utilisateur_id == utilisateur_id)
+    return session.exec(statement).first()
+
 def delete_client(session: Session, client_id: int) -> Client | None:
     """Supprimer un client et son utilisateur associé."""
     db_client = session.get(Client, client_id)
