@@ -261,7 +261,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">
-                    Pr�nom
+                    Prénom
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

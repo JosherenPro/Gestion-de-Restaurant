@@ -68,6 +68,11 @@ def list_reservations(session: Session, skip: int = 0, limit: int = 100) -> List
     statement = select(Reservation).offset(skip).limit(limit)
     return session.exec(statement).all()
 
+def list_reservations_by_client(session: Session, client_id: int, skip: int = 0, limit: int = 100) -> List[Reservation]:
+    """Lister les réservations d'un client spécifique."""
+    statement = select(Reservation).where(Reservation.client_id == client_id).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
 def update_reservation(session: Session, reservation_id: int, reservation_in: ReservationUpdate) -> ReservationRead | None:
     """Mettre à jour une réservation."""
     db_reservation = session.get(Reservation, reservation_id)

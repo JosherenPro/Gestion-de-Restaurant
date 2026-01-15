@@ -24,13 +24,18 @@ import os
 app = FastAPI(title="Restaurant API")
 
 # Configuration CORS
-# En développement, on peut autoriser tout. En production, vous pourrez restreindre à votre URL Vercel.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Autoriser tous les domaines
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://gestion-de-restaurant.onrender.com",
+    ],
     allow_credentials=True,
-    allow_methods=["*"], # Autoriser toutes les méthodes (GET, POST, etc.)
-    allow_headers=["*"], # Autoriser tous les headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Monter le dossier static pour servir les images

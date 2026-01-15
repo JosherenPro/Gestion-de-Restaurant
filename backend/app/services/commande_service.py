@@ -25,6 +25,11 @@ def list_commandes(session: Session, skip: int = 0, limit: int = 100) -> List[Co
     statement = select(Commande).offset(skip).limit(limit)
     return session.exec(statement).all()
 
+def list_commandes_by_client(session: Session, client_id: int, skip: int = 0, limit: int = 100) -> List[Commande]:
+    """Lister les commandes d'un client spécifique."""
+    statement = select(Commande).where(Commande.client_id == client_id).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
 def update_commande(session: Session, commande_id: int, commande_in: CommandeUpdate) -> CommandeRead | None:
     """Mettre à jour une commande."""
     db_commande = session.get(Commande, commande_id)
