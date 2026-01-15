@@ -115,3 +115,13 @@ def delete_personnel(session: Session, personnel_id: int) -> Personnel | None:
     session.delete(db_personnel)
     session.commit()
     return db_personnel
+
+def get_serveur_by_utilisateur_id(session: Session, utilisateur_id: int) -> Serveur | None:
+    """Récupérer le profil serveur d'un utilisateur."""
+    statement = select(Serveur).join(Personnel).where(Personnel.utilisateur_id == utilisateur_id)
+    return session.exec(statement).first()
+
+def get_cuisinier_by_utilisateur_id(session: Session, utilisateur_id: int) -> Cuisinier | None:
+    """Récupérer le profil cuisinier d'un utilisateur."""
+    statement = select(Cuisinier).join(Personnel).where(Personnel.utilisateur_id == utilisateur_id)
+    return session.exec(statement).first()

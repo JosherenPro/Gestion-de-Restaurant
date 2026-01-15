@@ -17,6 +17,11 @@ from app.services.commande_service import (
     valider_reception,
     marquer_payee
 )
+from app.services.personnel_service import (
+    get_serveur_by_utilisateur_id,
+    get_cuisinier_by_utilisateur_id
+)
+from app.security.rbac import allow_staff
 
 from app.schemas.commande import (
     CommandeCreate,
@@ -87,12 +92,23 @@ async def add_ligne_commande_endpoint(
 @router.post("/{commande_id}/valider", response_model=CommandeRead)
 async def valider_commande_endpoint(
     commande_id: int,
-    serveur_id: int,
-    session: Session = Depends(get_session)
+    serveur_id: int | None = None,
+    session: Session = Depends(get_session),
+    current_user = Depends(allow_staff)
 ):
     """Valider une commande par un serveur."""
     try:
-        commande = valider_commande(session, commande_id, serveur_id)
+        final_serveur_id = serveur_id
+        
+        # Si aucun serveur_id n'est passé, on prend celui de l'utilisateur actuel
+        # Ou si le serveur_id passé correspond à un utilisateur_id (cas du frontend actuel)
+        if final_serveur_id is None or final_serveur_id == current_user.id:
+            serveur = get_serveur_by_utilisateur_id(session, current_user.id)
+            if not serveur:
+                 raise HTTPException(status_code=403, detail="L'utilisateur actuel n'a pas de profil serveur")
+            final_serveur_id = serveur.id
+
+        commande = valider_commande(session, commande_id, final_serveur_id)
         if not commande:
             raise HTTPException(status_code=404, detail="Commande non trouvée")
         return commande
@@ -116,12 +132,22 @@ async def transmettre_cuisine_endpoint(
 @router.post("/{commande_id}/prete", response_model=CommandeRead)
 async def marquer_prete_endpoint(
     commande_id: int,
-    cuisinier_id: int,
-    session: Session = Depends(get_session)
+    cuisinier_id: int | None = None,
+    session: Session = Depends(get_session),
+    current_user = Depends(allow_staff)
 ):
     """Marque la commande comme prête."""
     try:
-        commande = marquer_prete(session, commande_id, cuisinier_id)
+        final_cuisinier_id = cuisinier_id
+        
+        # Résolution automatique du cuisinier_id
+        if final_cuisinier_id is None or final_cuisinier_id == current_user.id or final_cuisinier_id == 1: # 1 est souvent un mock
+            cuisinier = get_cuisinier_by_utilisateur_id(session, current_user.id)
+            if not cuisinier:
+                 raise HTTPException(status_code=403, detail="L'utilisateur actuel n'a pas de profil cuisinier")
+            final_cuisinier_id = cuisinier.id
+
+        commande = marquer_prete(session, commande_id, final_cuisinier_id)
         if not commande:
             raise HTTPException(status_code=404, detail="Commande non trouvée")
         return commande

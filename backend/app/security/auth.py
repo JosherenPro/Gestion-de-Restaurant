@@ -43,8 +43,6 @@ def authentificate_user(session: Session, email: str, password: str) -> Utilisat
         return None
     if not utilisateur.active:
         return None
-    if not utilisateur.is_verified:
-        return None
     return utilisateur
 
 

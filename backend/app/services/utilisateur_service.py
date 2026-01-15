@@ -63,7 +63,7 @@ def create_utilisateur(
     token = secrets.token_urlsafe(32)
     token_expires = datetime.now(timezone.utc) + timedelta(hours=24)
     
-    utilisateur.is_verified = False
+    utilisateur.is_verified = True
     utilisateur.verification_token = token
     utilisateur.verification_token_expires = token_expires
     

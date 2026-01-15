@@ -26,8 +26,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(() => {
         try {
-            // Utiliser sessionStorage pour que la session expire à la fermeture de l'onglet
-            return sessionStorage.getItem('auth_token');
+            // Utiliser localStorage pour que la session persiste au rafraîchissement
+            return localStorage.getItem('auth_token');
         } catch {
             return null;
         }
@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             } catch (error) {
                 console.error('Failed to fetch user:', error);
-                try { sessionStorage.removeItem('auth_token'); } catch { }
+                try { localStorage.removeItem('auth_token'); } catch { }
                 setToken(null);
                 setUser(null);
             } finally {
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const accessToken = response.access_token;
 
             setToken(accessToken);
-            try { sessionStorage.setItem('auth_token', accessToken); } catch { }
+            try { localStorage.setItem('auth_token', accessToken); } catch { }
 
             // Fetch user details
             const userData = await apiService.getCurrentUser(accessToken);
@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Normalize and rethrow error with readable message
             const message = (error as any)?.message || 'Échec de la connexion';
             // Clear any stale token
-            try { sessionStorage.removeItem('auth_token'); } catch { }
+            try { localStorage.removeItem('auth_token'); } catch { }
             setToken(null);
             setUser(null);
             throw new Error(message);
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = () => {
         setUser(null);
         setToken(null);
-        try { sessionStorage.removeItem('auth_token'); } catch { }
+        try { localStorage.removeItem('auth_token'); } catch { }
     };
 
     const loginAsGuest = () => {

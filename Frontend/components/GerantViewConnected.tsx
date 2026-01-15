@@ -213,6 +213,14 @@ export const GerantViewConnected: React.FC = () => {
     const [tables, setTables] = useState<Table[]>([]);
     const [personnel, setPersonnel] = useState<any[]>([]);
     const [reservations, setReservations] = useState<Reservation[]>([]);
+    const [allCommandes, setAllCommandes] = useState<any[]>([]);
+
+    // Notifications state
+    const [hasNewOrders, setHasNewOrders] = useState(false);
+    const [hasNewReservations, setHasNewReservations] = useState(false);
+    const prevOrdersCountRef = React.useRef(0);
+    const prevReservationsCountRef = React.useRef(0);
+    const loadingRef = React.useRef(false);
 
     // Modal states
     const [isAddPlatOpen, setIsAddPlatOpen] = useState(false);
@@ -255,6 +263,8 @@ export const GerantViewConnected: React.FC = () => {
 
     useEffect(() => {
         loadData();
+        const interval = setInterval(loadData, 10000); // Auto refresh every 10s
+        return () => clearInterval(interval);
     }, [activeTab]);
 
     useEffect(() => {
@@ -271,14 +281,19 @@ export const GerantViewConnected: React.FC = () => {
     };
 
     const loadData = async () => {
+        if (!token || loadingRef.current) {
+            if (!token) setLoading(false);
+            return;
+        }
+
         try {
-            setLoading(true);
+            loadingRef.current = true;
+            if (activeTab === 'DASHBOARD' || activeTab === 'STATS') {
+                // Keep loading skeletal only for first load
+                if (!stats) setLoading(true);
+            }
             setError(null);
             const authToken = getToken();
-            if (!authToken) {
-                setLoading(false);
-                return;
-            }
 
             switch (activeTab) {
                 case 'DASHBOARD':
@@ -307,6 +322,23 @@ export const GerantViewConnected: React.FC = () => {
                     setReservations(reservationsData);
                     setPersonnel(personnelData);
                     setPlats(platsData);
+
+                    const allCmds = await apiService.getCommandes(authToken).catch(() => []);
+                    setAllCommandes(allCmds);
+
+                    // Check for new orders
+                    if (allCmds.length > prevOrdersCountRef.current && prevOrdersCountRef.current > 0) {
+                        setHasNewOrders(true);
+                        setTimeout(() => setHasNewOrders(false), 5000);
+                    }
+                    prevOrdersCountRef.current = allCmds.length;
+
+                    // Check for new reservations
+                    if (reservationsData.length > prevReservationsCountRef.current && prevReservationsCountRef.current > 0) {
+                        setHasNewReservations(true);
+                        setTimeout(() => setHasNewReservations(false), 5000);
+                    }
+                    prevReservationsCountRef.current = reservationsData.length;
                     break;
                 case 'STATS':
                     const [statsData2, topPlatsData2, platsForStats, revenueData2] = await Promise.all([
@@ -353,6 +385,7 @@ export const GerantViewConnected: React.FC = () => {
             setError('Impossible de charger les données.');
         } finally {
             setLoading(false);
+            loadingRef.current = false;
         }
     };
 
@@ -546,7 +579,30 @@ export const GerantViewConnected: React.FC = () => {
                         <Button variant="outline" size="sm" onClick={loadData}>Réessayer</Button>
                     </div>
                 ) : (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                        {/* Live Notifications Banner */}
+                        {(hasNewOrders || hasNewReservations) && (
+                            <div className="flex flex-col gap-3">
+                                {hasNewOrders && (
+                                    <div className="bg-orange-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-bounce">
+                                        <div className="flex items-center gap-3">
+                                            <Bell className="animate-swing" />
+                                            <span className="font-black text-xs uppercase tracking-widest">Nouvelle Commande Reçue !</span>
+                                        </div>
+                                        <Button size="sm" variant="ghost" className="text-white border-white/20" onClick={() => setHasNewOrders(false)}>X</Button>
+                                    </div>
+                                )}
+                                {hasNewReservations && (
+                                    <div className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-pulse">
+                                        <div className="flex items-center gap-3">
+                                            <Calendar />
+                                            <span className="font-black text-xs uppercase tracking-widest">Nouvelle Réservation à Confirmer !</span>
+                                        </div>
+                                        <Button size="sm" variant="ghost" className="text-white border-white/20" onClick={() => setHasNewReservations(false)}>X</Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Dashboard View */}
                         {activeTab === 'DASHBOARD' && (
@@ -565,9 +621,12 @@ export const GerantViewConnected: React.FC = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                                    <Card className="lg:col-span-2 p-6 md:p-8 border-none shadow-xl shadow-gray-100 rounded-[2.5rem]">
+                                    <Card className="lg:col-span-2 p-6 md:p-8 border-none shadow-xl shadow-gray-100 rounded-[2.5rem] bg-white relative overflow-hidden">
                                         <div className="flex items-center justify-between mb-8">
-                                            <h3 className="font-black text-xl text-[#03081F] tracking-tighter uppercase">Flux Hebdomadaire</h3>
+                                            <div>
+                                                <h3 className="font-black text-xl text-[#03081F] tracking-tighter uppercase">Analyse de Performance</h3>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Revenus vs Objectifs</p>
+                                            </div>
                                             <div className="flex gap-2">
                                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                                                 <div className="text-[9px] font-black text-emerald-600 uppercase">Live</div>
@@ -595,32 +654,94 @@ export const GerantViewConnected: React.FC = () => {
                                         </div>
                                     </Card>
 
-                                    <Card className="bg-[#03081F] text-white rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FC8A06]/20 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                                        <h3 className="font-black text-xl mb-8 relative z-10 tracking-tighter uppercase">Best Sellers</h3>
-                                        <div className="space-y-5 relative z-10">
-                                            {topPlats.slice(0, 5).map((plat, i) => (
-                                                <div key={i} className="flex items-center gap-4 group/item cursor-pointer">
-                                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-black text-xs text-[#FC8A06] group-hover/item:bg-[#FC8A06] group-hover/item:text-white transition-all">
-                                                        {i + 1}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-bold text-sm truncate uppercase tracking-tighter">{plat.nom}</p>
-                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                            <div className="h-1 bg-white/10 rounded-full flex-1 overflow-hidden">
-                                                                <div
-                                                                    className="h-full bg-gradient-to-r from-[#FC8A06] to-orange-400 rounded-full"
-                                                                    style={{ width: `${Math.min(100, (plat.quantite_vendue / (topPlats[0]?.quantite_vendue || 1)) * 100)}%` }}
-                                                                ></div>
+                                    <div className="space-y-6">
+                                        <Card className="bg-[#03081F] text-white rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#FC8A06]/20 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                                            <h3 className="font-black text-xl mb-8 relative z-10 tracking-tighter uppercase">Activité Récente</h3>
+                                            <div className="space-y-4 relative z-10 max-h-[300px] overflow-y-auto no-scrollbar">
+                                                {allCommandes.slice(0, 4).map((cmd, i) => (
+                                                    <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/item">
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cmd.statut === 'en_attente' ? 'bg-orange-500' : 'bg-emerald-500'
+                                                            }`}>
+                                                            <Clock size={16} className="text-white" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-start">
+                                                                <p className="text-xs font-black uppercase tracking-tight">#{cmd.id}</p>
+                                                                <span className="text-[8px] font-bold opacity-40 uppercase">{new Date(cmd.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
-                                                            <span className="text-[10px] font-black text-white/40">{plat.quantite_vendue} QTY</span>
+                                                            <p className="text-[10px] opacity-60 mt-1 font-medium">{cmd.montant_total.toLocaleString()} CFA • Table {cmd.table_id}</p>
                                                         </div>
                                                     </div>
+                                                ))}
+                                                {allCommandes.length === 0 && (
+                                                    <div className="text-center py-10 opacity-30">
+                                                        <Package size={32} className="mx-auto mb-2" />
+                                                        <p className="text-[10px] font-black uppercase tracking-widest">Aucune activité</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Card>
+
+                                        <Card className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-xl border border-gray-50 relative overflow-hidden group">
+                                            <h3 className="font-black text-xl mb-8 text-[#03081F] tracking-tighter uppercase italic">Best Sellers</h3>
+                                            <div className="grid grid-cols-1 gap-5">
+                                                {topPlats.slice(0, 3).map((plat, i) => (
+                                                    <div key={i} className="flex items-center gap-4 group/item cursor-pointer p-2 rounded-2xl hover:bg-gray-50 transition-all">
+                                                        <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center font-black text-xs text-[#FC8A06] group-hover/item:bg-[#FC8A06] group-hover/item:text-white transition-all">
+                                                            #{i + 1}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-bold text-sm truncate uppercase tracking-tighter text-[#03081F]">{plat.nom}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <div className="h-1 bg-gray-100 rounded-full flex-1 overflow-hidden">
+                                                                    <div
+                                                                        className="h-full bg-gradient-to-r from-[#FC8A06] to-orange-400 rounded-full"
+                                                                        style={{ width: `${Math.min(100, (plat.quantite_vendue / (topPlats[0]?.quantite_vendue || 1)) * 100)}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                                <span className="text-[9px] font-black text-gray-400">{plat.quantite_vendue} QTY</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </Card>
+                                    </div>
+                                </div>
+
+                                {/* Active Reservations Section */}
+                                <div className="mt-8">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="font-black text-2xl text-[#03081F] tracking-tighter uppercase italic">Réservations à venir</h3>
+                                        <Button variant="ghost" onClick={() => setActiveTab('RESERVATIONS')} className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50">Voir tout</Button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {reservations.slice(0, 4).map((res, i) => (
+                                            <Card key={i} className="p-6 border-none shadow-lg hover:shadow-xl transition-all rounded-[2rem] bg-white border border-gray-50 flex flex-col justify-between group">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                        <Calendar size={20} />
+                                                    </div>
+                                                    <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase tracking-tighter">Confirmé</span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <Button fullWidth variant="ghost" className="mt-8 text-white/40 border border-white/10 rounded-2xl text-[10px] font-black uppercase hover:bg-white/5">Détails Statistiques</Button>
-                                    </Card>
+                                                <div>
+                                                    <p className="font-black text-lg text-[#03081F] uppercase tracking-tighter">Table {res.table_id}</p>
+                                                    <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">{new Date(res.date_reservation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} @ {new Date(res.date_reservation).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                </div>
+                                                <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2">
+                                                    <Users size={14} className="text-gray-300" />
+                                                    <span className="text-[10px] font-black text-gray-500 uppercase">{res.nombre_personnes} PERSONNES</span>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                        {reservations.length === 0 && (
+                                            <div className="col-span-full py-10 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center text-gray-300">
+                                                <Calendar size={32} strokeWidth={1} />
+                                                <p className="text-[10px] font-black uppercase mt-2 tracking-widest">Aucune réservation</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -797,20 +918,24 @@ export const GerantViewConnected: React.FC = () => {
                                         <button
                                             key={table.id}
                                             onClick={() => { setSelectedItem(table); setIsAddTableOpen(true); }}
-                                            className={`aspect-square rounded-[2.5rem] flex flex-col items-center justify-center gap-2 border-4 transition-all hover:scale-105 shadow-xl relative overflow-hidden group ${table.statut === TableStatus.LIBRE
-                                                ? 'border-emerald-50 bg-emerald-50/50 text-emerald-600 shadow-emerald-200/10'
-                                                : table.statut === TableStatus.OCCUPEE ? 'border-red-50 bg-red-50/50 text-red-600 shadow-red-200/10'
-                                                    : 'border-orange-50 bg-orange-50/50 text-orange-600 shadow-orange-200/10'
+                                            className={`aspect-square rounded-[2.5rem] flex flex-col items-center justify-center gap-2 border-2 transition-all hover:scale-105 active:scale-95 shadow-lg relative overflow-hidden group ${table.statut === TableStatus.LIBRE
+                                                ? 'border-emerald-100 bg-white text-emerald-600'
+                                                : table.statut === TableStatus.OCCUPEE ? 'border-red-100 bg-red-50/50 text-red-600'
+                                                    : 'border-orange-100 bg-orange-50/50 text-orange-600'
                                                 }`}
                                         >
-                                            <div className={`p-3 rounded-2xl mb-1 ${table.statut === TableStatus.LIBRE ? 'bg-emerald-500' : 'bg-[#03081F]'} text-white shadow-lg`}>
-                                                <Users size={18} />
+                                            <div className="absolute top-0 right-0 w-16 h-16 bg-white/40 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform"></div>
+                                            <div className={`p-4 rounded-2xl mb-1 shadow-xl relative z-10 transition-transform group-hover:rotate-12 ${table.statut === TableStatus.LIBRE ? 'bg-emerald-500' : table.statut === TableStatus.OCCUPEE ? 'bg-red-500' : 'bg-orange-500'} text-white`}>
+                                                <Users size={20} />
                                             </div>
-                                            <span className="font-black text-3xl tracking-tighter">T{table.numero_table}</span>
-                                            <span className="text-[9px] uppercase font-black tracking-[0.2em] opacity-60">{table.capacite} PLACES</span>
+                                            <span className="font-black text-3xl tracking-tighter relative z-10">T{table.numero_table}</span>
+                                            <div className="flex items-center gap-2 relative z-10">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${table.statut === TableStatus.LIBRE ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                                                <span className="text-[10px] uppercase font-black tracking-widest opacity-60">{table.capacite} PLACES</span>
+                                            </div>
 
                                             {table.statut === TableStatus.OCCUPEE && (
-                                                <div className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></div>
+                                                <div className="absolute top-6 right-6 w-2 h-2 bg-red-500 rounded-full border border-white animate-ping"></div>
                                             )}
                                         </button>
                                     ))}
@@ -829,30 +954,47 @@ export const GerantViewConnected: React.FC = () => {
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {personnel.map(p => (
-                                        <Card key={p.id} className="p-8 border-none shadow-xl shadow-gray-100 flex items-center gap-6 relative overflow-hidden group rounded-[2.5rem]">
-                                            <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform"></div>
-                                            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-3xl font-black text-white shadow-2xl relative z-10 ${p.role === 'GERANT' ? 'bg-[#FC8A06] shadow-orange-300' : p.role === 'CUISINIER' ? 'bg-red-500 shadow-red-300' : 'bg-blue-600 shadow-blue-300'
-                                                }`}>
-                                                {p.nom?.[0] || 'U'}
+                                        <Card key={p.id} className="p-8 border-none shadow-xl shadow-gray-100 flex items-center gap-6 relative overflow-hidden group rounded-[2.5rem] bg-white transition-all hover:shadow-2xl hover:-translate-y-1">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
+                                            <div className="relative">
+                                                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-3xl font-black text-white shadow-2xl relative z-10 ${p.role === 'GERANT' ? 'bg-[#FC8A06] shadow-orange-300' : p.role === 'CUISINIER' ? 'bg-red-500 shadow-red-300' : 'bg-blue-600 shadow-blue-300'
+                                                    }`}>
+                                                    {p.nom?.[0] || 'U'}
+                                                </div>
+                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-white rounded-full z-20"></div>
                                             </div>
                                             <div className="flex-1 min-w-0 relative z-10">
                                                 <h4 className="font-black text-xl text-[#03081F] truncate uppercase tracking-tighter">{p.prenom} {p.nom}</h4>
-                                                <span className={`inline-block px-3 py-1 mt-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${p.role === 'GERANT' ? 'bg-orange-50 text-orange-600' :
-                                                    p.role === 'CUISINIER' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                                                    }`}>
-                                                    {p.role}
-                                                </span>
-                                                <div className="flex items-center gap-4 mt-4">
-                                                    <Mail size={14} className="text-gray-300" />
-                                                    <p className="text-xs font-bold text-gray-400 truncate">{p.email}</p>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                    <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${p.role === 'GERANT' ? 'bg-orange-50 text-orange-600' :
+                                                        p.role === 'CUISINIER' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                                        }`}>
+                                                        {p.role}
+                                                    </span>
+                                                    <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest">Actif</span>
+                                                </div>
+                                                <div className="mt-4 space-y-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <Mail size={12} className="text-gray-300" />
+                                                        <p className="text-[10px] font-bold text-gray-400 truncate">{p.email}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <Phone size={12} className="text-gray-300" />
+                                                        <p className="text-[10px] font-bold text-gray-400 truncate">{p.telephone || '-- -- -- --'}</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => { if (window.confirm('SUPPRIMER CE MEMBRE ?')) apiService.deletePersonnel(p.id, getToken()).then(loadData); }}
-                                                className="absolute bottom-6 right-6 p-3 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                            >
-                                                <Trash2 size={20} />
-                                            </button>
+                                            <div className="absolute bottom-6 right-6 flex gap-2">
+                                                <button onClick={() => { setSelectedItem(p); setIsAddPersonnelOpen(true); }} className="p-3 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all">
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => { if (window.confirm('SUPPRIMER CE MEMBRE ?')) apiService.deletePersonnel(p.id, getToken()).then(loadData); }}
+                                                    className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </Card>
                                     ))}
                                 </div>
