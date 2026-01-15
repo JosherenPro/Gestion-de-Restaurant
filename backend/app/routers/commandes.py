@@ -12,6 +12,7 @@ from app.services.commande_service import (
     delete_commande,
     add_ligne_commande,
     valider_commande,
+    refuser_commande,
     transmettre_cuisine,
     marquer_prete,
     marquer_servie,
@@ -156,6 +157,30 @@ async def valider_commande_endpoint(
             final_serveur_id = serveur.id
 
         commande = valider_commande(session, commande_id, final_serveur_id)
+        if not commande:
+            raise HTTPException(status_code=404, detail="Commande non trouvée")
+        return commande
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{commande_id}/refuser", response_model=CommandeRead)
+async def refuser_commande_endpoint(
+    commande_id: int,
+    raison: str = Body(..., embed=True),
+    serveur_id: int | None = None,
+    session: Session = Depends(get_session),
+    current_user = Depends(allow_staff)
+):
+    """Refuser une commande par un serveur."""
+    try:
+        final_serveur_id = serveur_id
+        if final_serveur_id is None or final_serveur_id == current_user.id:
+            serveur = get_serveur_by_utilisateur_id(session, current_user.id)
+            if not serveur:
+                 raise HTTPException(status_code=403, detail="L'utilisateur actuel n'a pas de profil serveur")
+            final_serveur_id = serveur.id
+
+        commande = refuser_commande(session, commande_id, final_serveur_id, raison)
         if not commande:
             raise HTTPException(status_code=404, detail="Commande non trouvée")
         return commande

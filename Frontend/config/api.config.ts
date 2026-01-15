@@ -36,6 +36,7 @@ export const API_CONFIG = {
       BY_ID: (id: number) => `/commandes/${id}`,
       LIGNES: (id: number) => `/commandes/${id}/lignes`,
       VALIDER: (id: number) => `/commandes/${id}/valider`,
+      REFUSER: (id: number) => `/commandes/${id}/refuser`,
       PREPARER: (id: number) => `/commandes/${id}/preparer`,
       PRETE: (id: number) => `/commandes/${id}/prete`,
       SERVIR: (id: number) => `/commandes/${id}/servir`,
