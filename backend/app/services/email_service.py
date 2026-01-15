@@ -9,8 +9,8 @@ logger.setLevel(logging.INFO)
 
 # Configuration automatique pour MAIL_STARTTLS et MAIL_SSL_TLS selon le port
 # Port 465 = SSL/TLS, Port 587 = STARTTLS
-is_ssl_tls = settings.MAIL_PORT == 465
-is_starttls = settings.MAIL_PORT == 587
+is_ssl_tls = settings.MAIL_SSL_TLS if settings.MAIL_SSL_TLS is not None else (settings.MAIL_PORT == 465)
+is_starttls = settings.MAIL_STARTTLS if settings.MAIL_STARTTLS is not None else (settings.MAIL_PORT == 587)
 
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -29,6 +29,7 @@ async def send_verification_email(email: str, token: str):
     """
     Envoie un véritable email de vérification via SMTP.
     """
+    print(f"📧 TENTATIVE D'ENVOI D'EMAIL : Préparation de l'email pour {email}...")
     # Utiliser l'URL du backend pour la vérification
     verification_link = f"{settings.FRONTEND_URL}/auth/verify?token={token}"
     
@@ -58,7 +59,9 @@ async def send_verification_email(email: str, token: str):
 
     fm = FastMail(conf)
     try:
+        print(f"📡 CONNEXION SMTP : Envoi en cours vers {email}...")
         await fm.send_message(message)
+        print(f"✅ EMAIL ENVOYÉ : Email de vérification envoyé avec succès à {email}")
         logger.info(f"Email de vérification envoyé avec succès à {email}")
     except Exception as e:
         logger.error(f"Erreur lors de l'envoi de l'email à {email}: {str(e)}")

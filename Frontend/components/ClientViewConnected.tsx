@@ -39,7 +39,7 @@ export const ClientView: React.FC = () => {
 
   // Authentication state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [clientToken, setClientToken] = useState<string | null>(localStorage.getItem('client_token'));
+  const [clientToken, setClientToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [clientData, setClientData] = useState<any>(null);
 
   // Payment state
@@ -235,14 +235,14 @@ export const ClientView: React.FC = () => {
   // Load user data on mount if token exists
   useEffect(() => {
     const loadUserData = async () => {
-      const token = localStorage.getItem('client_token');
+      const token = localStorage.getItem('auth_token');
       if (token) {
         try {
           const userData = await apiService.getCurrentUser(token);
           setClientData(userData);
           setClientToken(token);
         } catch (err) {
-          localStorage.removeItem('client_token');
+          localStorage.removeItem('auth_token');
           setClientToken(null);
         }
       }
@@ -259,7 +259,7 @@ export const ClientView: React.FC = () => {
 
   // Logout
   const handleLogout = () => {
-    localStorage.removeItem('client_token');
+    localStorage.removeItem('auth_token');
     setClientToken(null);
     setClientData(null);
   };

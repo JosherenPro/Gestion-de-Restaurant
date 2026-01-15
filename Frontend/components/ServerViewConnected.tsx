@@ -353,7 +353,7 @@ export const ServerViewConnected: React.FC = () => {
                 .map(order => (
                   <Card key={order.id} className="p-0 border-none rounded-[2.5rem] bg-white shadow-xl shadow-gray-100 overflow-hidden relative group hover:shadow-2xl transition-all duration-500 border border-gray-50">
                     <div className="p-6 md:p-8">
-                      <div className="flex justify-between items-start mb-8">
+                      <div className="flex justify-between items-start mb-6">
                         <div className="flex gap-5">
                           <div className={`w-20 h-20 rounded-3xl flex items-center justify-center font-black text-3xl shadow-xl transition-transform group-hover:scale-110 ${order.statut === OrderStatus.PRETE ? 'bg-emerald-500 text-white shadow-emerald-200' :
                             order.statut === OrderStatus.EN_ATTENTE_VALIDATION ? 'bg-[#03081F] text-white shadow-blue-900/20' :
@@ -373,22 +373,52 @@ export const ServerViewConnected: React.FC = () => {
                             </div>
                           </div>
                         </div>
+                        {/* Order Type Badge */}
+                        <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${order.type_commande === 'a_emporter' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                          }`}>
+                          {order.type_commande === 'a_emporter' ? '📦 À Emporter' : '🍽️ Sur Place'}
+                        </div>
                       </div>
 
-                      <div className="bg-gray-50/50 rounded-[2rem] p-6 mb-8 border border-gray-100 space-y-4">
-                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] mb-2">Composition du plateau</p>
-                        {order.lignes?.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center group/item">
-                            <div className="flex items-center gap-4">
-                              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-[10px] font-black text-[#FC8A06] shadow-sm border border-orange-50">
-                                {item.quantite}
+                      {/* Order Notes */}
+                      {order.notes && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-4">
+                          <p className="text-[9px] font-black text-yellow-600 uppercase tracking-widest mb-1">📝 Notes client</p>
+                          <p className="text-sm text-yellow-800 font-medium">{order.notes}</p>
+                        </div>
+                      )}
+
+                      <div className="bg-gray-50/50 rounded-[2rem] p-6 mb-6 border border-gray-100">
+                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Détails de la commande</p>
+                        <div className="space-y-3">
+                          {order.lignes?.map((item, idx) => (
+                            <div key={idx} className="bg-white rounded-xl p-3 border border-gray-50">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-[#FC8A06]/10 flex items-center justify-center text-sm font-black text-[#FC8A06]">
+                                    x{item.quantite}
+                                  </div>
+                                  <div>
+                                    <span className="font-black text-[#03081F] text-sm uppercase tracking-tighter block">{item.plat?.nom || 'Plat inconnu'}</span>
+                                    <span className="text-[10px] text-gray-400 font-medium">{item.prix_unitaire?.toLocaleString()} CFA / unité</span>
+                                  </div>
+                                </div>
+                                <span className="text-sm font-black text-[#03081F]">{(item.prix_unitaire * item.quantite)?.toLocaleString()} CFA</span>
                               </div>
-                              <span className="font-black text-[#03081F] text-sm uppercase tracking-tighter">{item.plat?.nom || 'Plat inconnu'}</span>
+                              {/* Item Special Notes */}
+                              {item.notes_speciales && (
+                                <div className="mt-2 pl-13 text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-1.5 italic">
+                                  ⚠️ {item.notes_speciales}
+                                </div>
+                              )}
                             </div>
-                            <div className="h-[1px] flex-1 mx-4 bg-gray-100 group-hover/item:bg-[#FC8A06]/20 transition-colors"></div>
-                            <span className="text-[10px] font-bold text-gray-400">OK</span>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                        {/* Total */}
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</span>
+                          <span className="text-xl font-black text-[#FC8A06]">{order.montant_total?.toLocaleString()} CFA</span>
+                        </div>
                       </div>
 
                       <div className="flex gap-3">

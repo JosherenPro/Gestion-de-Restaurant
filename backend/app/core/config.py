@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     MAIL_PORT: int = 587
     MAIL_SERVER: str = ""
     MAIL_FROM_NAME: str = "Restaurant Management"
+    MAIL_STARTTLS: bool | None = None
+    MAIL_SSL_TLS: bool | None = None
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
     

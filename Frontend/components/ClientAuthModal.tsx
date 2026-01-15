@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { apiService } from '../services/api.service';
 import { Button, Card } from './UI';
 import { Mail, Lock, User, Phone, AlertCircle, Loader, X, LogIn, UserPlus, Sparkles } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface ClientAuthModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { login: globalLogin } = useAuth();
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -34,17 +36,10 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
 
     try {
       console.log('?? Tentative de connexion avec:', loginEmail);
-      const response = await apiService.login(loginEmail, loginPassword);
-      console.log('? R�ponse login:', response);
-      const token = response.access_token;
+      await globalLogin(loginEmail, loginPassword);
 
-      // Get user info
-      console.log('?? R�cup�ration des infos utilisateur...');
+      const token = localStorage.getItem('auth_token') || '';
       const userData = await apiService.getCurrentUser(token);
-      console.log('? Donn�es utilisateur:', userData);
-
-      // Store token
-      localStorage.setItem('client_token', token);
 
       onSuccess(token, userData);
       onClose();
@@ -101,21 +96,25 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
       }
 
       // Auto-login after registration
-      console.log('🔄 Auto-connexion après inscription...');
-      const response = await apiService.login(registerData.email, registerData.mot_de_passe);
-      console.log('✅ Réponse auto-login:', response);
-      const token = response.access_token;
+      try {
+        console.log('🔄 Auto-connexion après inscription...');
+        await globalLogin(registerData.email, registerData.mot_de_passe);
 
-      // Get user info
-      console.log('👤 Récupération des infos utilisateur...');
-      const userData = await apiService.getCurrentUser(token);
-      console.log('✅ Données utilisateur:', userData);
+        const token = localStorage.getItem('auth_token') || '';
+        const userData = await apiService.getCurrentUser(token);
 
-      // Store token
-      localStorage.setItem('client_token', token);
-
-      onSuccess(token, userData);
-      onClose();
+        onSuccess(token, userData);
+        onClose();
+      } catch (loginErr: any) {
+        console.warn('⚠️ Auto-connexion impossible après inscription:', loginErr);
+        if (loginErr.message.includes('vérifier') || loginErr.message.includes('mail')) {
+          setMode('login');
+          setError('Inscription réussie ! Un email de validation vous a été envoyé. Veuillez vérifier votre boîte mail avant de vous connecter.');
+        } else {
+          setError('Inscription réussie ! Veuillez vous connecter avec vos identifiants.');
+          setMode('login');
+        }
+      }
     } catch (err: any) {
       console.error('❌ Erreur d\'inscription:', err);
       const errorMessage = err.message || 'Erreur lors de l\'inscription';
