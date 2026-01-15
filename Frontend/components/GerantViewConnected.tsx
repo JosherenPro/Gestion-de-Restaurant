@@ -263,7 +263,7 @@ export const GerantViewConnected: React.FC = () => {
 
     useEffect(() => {
         loadData();
-        const interval = setInterval(loadData, 10000); // Auto refresh every 10s
+        const interval = setInterval(loadData, 30000); // Auto refresh every 30s
         return () => clearInterval(interval);
     }, [activeTab]);
 

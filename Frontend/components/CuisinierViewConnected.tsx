@@ -29,7 +29,7 @@ export const CuisinierViewConnected: React.FC = () => {
 
     if (user) {
       loadData();
-      const interval = setInterval(loadData, 10000); // Faster refresh for kitchen
+      const interval = setInterval(loadData, 30000); // Refresh every 30s for kitchen
       return () => clearInterval(interval);
     }
   }, [user]);

@@ -36,7 +36,7 @@ export const ServerViewConnected: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000); // Refresh every 5 seconds
+    const interval = setInterval(loadData, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, [token]);
 
