@@ -32,6 +32,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://gestion-de-restaurant.onrender.com",
+        "https://gestion-de-restaurant-five.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
