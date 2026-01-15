@@ -25,7 +25,14 @@ export const ReservationManagerView: React.FC = () => {
       setLoading(true);
       setError(null);
       const data = await apiService.getReservations(getToken());
-      setReservations(data);
+      // Normaliser les données du backend (status -> statut, minuscule -> MAJUSCULE)
+      const normalizedData = data.map((res: any) => ({
+        ...res,
+        statut: (res.statut || res.status || 'EN_ATTENTE').toUpperCase(),
+        // Assurer que les autres champs sont là
+        status: undefined // On nettoie pour éviter la confusion
+      }));
+      setReservations(normalizedData);
     } catch (err: any) {
       console.error('Error fetching reservations:', err);
       setError(err.message || 'Erreur lors du chargement des reservations');
@@ -106,9 +113,9 @@ export const ReservationManagerView: React.FC = () => {
     });
   };
 
-  const pendingReservations = reservations.filter(r => r.statut === 'EN_ATTENTE');
-  const confirmedReservations = reservations.filter(r => r.statut === 'CONFIRMEE');
-  const canceledReservations = reservations.filter(r => r.statut === 'ANNULEE');
+  const pendingReservations = reservations.filter(r => r.statut === 'EN_ATTENTE' || (r as any).statut === 'en_attente');
+  const confirmedReservations = reservations.filter(r => r.statut === 'CONFIRMEE' || (r as any).statut === 'confirmee');
+  const canceledReservations = reservations.filter(r => r.statut === 'ANNULEE' || (r as any).statut === 'annulee');
 
   if (loading) {
     return (
@@ -131,7 +138,7 @@ export const ReservationManagerView: React.FC = () => {
           </h2>
           <p className="text-gray-500 text-sm">Gerez les demandes de reservation de vos clients</p>
         </div>
-        <button 
+        <button
           onClick={fetchReservations}
           className="bg-white border-2 border-gray-100 px-6 py-3 rounded-xl font-bold text-sm hover:border-[#FC8A06] hover:text-[#FC8A06] transition-all"
         >
@@ -192,7 +199,7 @@ export const ReservationManagerView: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {pendingReservations.map((reservation) => (
-                <Card 
+                <Card
                   key={reservation.id}
                   className="p-6 bg-white border-2 border-yellow-100 hover:border-yellow-300 transition-all cursor-pointer group"
                   onClick={() => {
@@ -270,7 +277,7 @@ export const ReservationManagerView: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {confirmedReservations.map((reservation) => (
-                <Card 
+                <Card
                   key={reservation.id}
                   className="p-4 bg-white border border-gray-100 hover:shadow-lg transition-all cursor-pointer"
                   onClick={() => {
@@ -302,9 +309,9 @@ export const ReservationManagerView: React.FC = () => {
         )}
       </div>
 
-      <Modal 
-        isOpen={isDetailModalOpen} 
-        onClose={() => setIsDetailModalOpen(false)} 
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
         title="Details de la reservation"
       >
         {selectedReservation && (

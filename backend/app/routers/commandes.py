@@ -7,6 +7,7 @@ from app.services.commande_service import (
     create_commande,
     read_commande,
     list_commandes,
+    list_commandes_by_client,
     update_commande,
     delete_commande,
     add_ligne_commande,
@@ -21,6 +22,9 @@ from app.services.personnel_service import (
     get_serveur_by_utilisateur_id,
     get_cuisinier_by_utilisateur_id
 )
+from app.services.client_service import get_client_by_utilisateur_id
+from app.security.auth import get_current_user
+from app.models.utilisateur import Utilisateur
 from app.security.rbac import allow_staff
 
 from app.schemas.commande import (
@@ -38,45 +42,88 @@ router = APIRouter(
 @router.post("/", response_model=CommandeRead)
 async def create_commande_endpoint(
     session: Session = Depends(get_session),
-    commande_in: CommandeCreate = Body(...)
+    commande_in: CommandeCreate = Body(...),
+    current_user: Utilisateur = Depends(get_current_user)
 ):
+    """Créer une commande (lie automatiquement au client si connecté)."""
+    if current_user.role.upper() == "CLIENT":
+        client = get_client_by_utilisateur_id(session, current_user.id)
+        if not client:
+            raise HTTPException(status_code=400, detail="Profil client manquant.")
+        commande_in.client_id = client.id
+        
     return create_commande(session, commande_in)
 
 @router.get("/{commande_id}", response_model=CommandeRead)
 async def read_commande_endpoint(
     session: Session = Depends(get_session),
-    commande_id: int = Path(...)
+    commande_id: int = Path(...),
+    current_user: Utilisateur = Depends(get_current_user)
 ):
+    """Récupérer une commande par son ID (avec vérification de propriété)."""
     commande = read_commande(session, commande_id)
     if not commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+        
+    # Vérification de propriété pour les clients
+    if current_user.role.upper() == "CLIENT":
+        client = get_client_by_utilisateur_id(session, current_user.id)
+        if not client or commande.client_id != client.id:
+            raise HTTPException(status_code=403, detail="Accès non autorisé à cette commande.")
+            
     return commande
 
 @router.get("/", response_model=List[CommandeRead])
 async def list_commandes_endpoint(
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: Utilisateur = Depends(get_current_user)
 ):
+    """Lister les commandes (filtrées pour les clients, toutes pour le staff)."""
+    if current_user.role.upper() == "CLIENT":
+        client = get_client_by_utilisateur_id(session, current_user.id)
+        if not client:
+            return []
+        return list_commandes_by_client(session, client.id)
+        
     return list_commandes(session)
 
 @router.put("/{commande_id}", response_model=CommandeRead)
 async def update_commande_endpoint(
     session: Session = Depends(get_session),
     commande_id: int = Path(...),
-    commande_in: CommandeUpdate = Body(...)
+    commande_in: CommandeUpdate = Body(...),
+    current_user: Utilisateur = Depends(get_current_user)
 ):
-    commande = update_commande(session, commande_id, commande_in)
-    if not commande:
+    """Mettre à jour une commande (avec vérification de propriété)."""
+    db_commande = read_commande(session, commande_id)
+    if not db_commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+        
+    if current_user.role.upper() == "CLIENT":
+        client = get_client_by_utilisateur_id(session, current_user.id)
+        if not client or db_commande.client_id != client.id:
+            raise HTTPException(status_code=403, detail="Action non autorisée sur cette commande.")
+
+    commande = update_commande(session, commande_id, commande_in)
     return commande
 
 @router.delete("/{commande_id}", response_model=CommandeRead)
 async def delete_commande_endpoint(
     session: Session = Depends(get_session),
-    commande_id: int = Path(...)
+    commande_id: int = Path(...),
+    current_user: Utilisateur = Depends(get_current_user)
 ):
-    commande = delete_commande(session, commande_id)
-    if not commande:
+    """Supprimer une commande (avec vérification de propriété)."""
+    db_commande = read_commande(session, commande_id)
+    if not db_commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+        
+    if current_user.role.upper() == "CLIENT":
+        client = get_client_by_utilisateur_id(session, current_user.id)
+        if not client or db_commande.client_id != client.id:
+            raise HTTPException(status_code=403, detail="Action non autorisée sur cette commande.")
+
+    commande = delete_commande(session, commande_id)
     return commande
 
 @router.post("/{commande_id}/lignes", response_model=LigneCommandeRead)

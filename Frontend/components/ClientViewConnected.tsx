@@ -357,8 +357,13 @@ export const ClientView: React.FC = () => {
   // Fetch reservations
   const fetchMyReservations = async () => {
     try {
-      const reservations = await apiService.getReservations(clientToken || undefined);
-      setMyReservations(reservations);
+      const data = await apiService.getReservations(clientToken || undefined);
+      // Normaliser les données (backend status -> frontend statut)
+      const normalizedData = data.map((res: any) => ({
+        ...res,
+        statut: (res.statut || res.status || 'EN_ATTENTE').toUpperCase()
+      }));
+      setMyReservations(normalizedData);
       setIsMyReservationsOpen(true);
     } catch (err) {
       console.error('Error fetching reservations:', err);

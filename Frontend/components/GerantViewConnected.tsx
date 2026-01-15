@@ -319,7 +319,12 @@ export const GerantViewConnected: React.FC = () => {
                         chiffre_affaires: p.chiffre_affaires || (platsData.find((plat: any) => plat.id === p.plat_id)?.prix || 0) * p.quantite_vendue
                     })));
                     setTables(tablesData);
-                    setReservations(reservationsData);
+                    // Normaliser les réservations
+                    const normalizedReservations = (reservationsData || []).map((res: any) => ({
+                        ...res,
+                        statut: (res.statut || res.status || 'EN_ATTENTE').toUpperCase()
+                    }));
+                    setReservations(normalizedReservations);
                     setPersonnel(personnelData);
                     setPlats(platsData);
 
@@ -723,7 +728,13 @@ export const GerantViewConnected: React.FC = () => {
                                                     <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                                         <Calendar size={20} />
                                                     </div>
-                                                    <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase tracking-tighter">Confirmé</span>
+                                                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter ${res.statut === 'CONFIRMEE' ? 'bg-emerald-50 text-emerald-600' :
+                                                            res.statut === 'EN_ATTENTE' ? 'bg-yellow-50 text-yellow-600' :
+                                                                'bg-gray-50 text-gray-400'
+                                                        }`}>
+                                                        {res.statut === 'CONFIRMEE' ? 'Confirmé' :
+                                                            res.statut === 'EN_ATTENTE' ? 'En attente' : 'Annulé'}
+                                                    </span>
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-lg text-[#03081F] uppercase tracking-tighter">Table {res.table_id}</p>
