@@ -20,10 +20,19 @@ def create_client_full(
     background_tasks: BackgroundTasks
 ) -> Client:
     """Créer un utilisateur et un client en une seule fois."""
-    # 1. Créer l'utilisateur
+    # 1. Créer ou mettre à jour l'utilisateur
     utilisateur = create_utilisateur(session, client_in, background_tasks)
     
-    # 2. Créer le client lié
+    # 2. Vérifier si un client existe déjà pour cet utilisateur
+    statement = select(Client).where(Client.utilisateur_id == utilisateur.id)
+    existing_client = session.exec(statement).first()
+    
+    if existing_client:
+        print(f"ℹ️ CREATE_CLIENT : Client existant trouvé (ID: {existing_client.id}) pour Utilisateur {utilisateur.id}")
+        return existing_client
+
+    # 3. Créer le client lié si absent
+    print(f"✨ CREATE_CLIENT : Création d'un nouveau profil client pour Utilisateur {utilisateur.id}")
     client = Client(utilisateur_id=utilisateur.id)
     session.add(client)
     session.commit()
