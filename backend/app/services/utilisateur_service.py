@@ -23,39 +23,50 @@ def create_utilisateur(
     """Creer un nouvel utilisateur dans la base de donnees.
     Si l'utilisateur existe déjà mais n'est pas vérifié, on met à jour ses informations.
     """
+    clean_email = utilisateur_in.email.lower().strip()
+    clean_phone = utilisateur_in.telephone.strip()
+    
+    print(f"📝 CREATE_USER [START]: Email={clean_email}, Phone={clean_phone}")
+    
     # Verifier si l'email existe deja
-    statement_email = select(Utilisateur).where(Utilisateur.email == utilisateur_in.email)
+    statement_email = select(Utilisateur).where(Utilisateur.email == clean_email)
     existing_user_email = session.exec(statement_email).first()
     
     # Verifier si le numero de telephone existe deja
-    statement_phone = select(Utilisateur).where(Utilisateur.telephone == utilisateur_in.telephone)
+    statement_phone = select(Utilisateur).where(Utilisateur.telephone == clean_phone)
     existing_user_phone = session.exec(statement_phone).first()
 
     # Si l'un ou l'autre existe, on vérifie s'il est vérifié
     existing_user = existing_user_email or existing_user_phone
     
     if existing_user:
+        print(f"🔍 CREATE_USER [FOUND]: ID={existing_user.id}, Verified={existing_user.is_verified}")
         if existing_user.is_verified:
             if existing_user_email:
+                print(f"❌ CREATE_USER [FAIL]: Email {clean_email} already verified.")
                 raise ValueError("Cet email est déjà utilisé")
             else:
+                print(f"❌ CREATE_USER [FAIL]: Phone {clean_phone} already verified.")
                 raise ValueError("Ce numéro de téléphone est déjà utilisé")
         else:
             # L'utilisateur existe mais n'est pas vérifié, on le met à jour
+            print(f"🔄 CREATE_USER [UPDATE]: Updating unverified User ID={existing_user.id}")
             utilisateur = existing_user
             utilisateur.nom = utilisateur_in.nom
             utilisateur.prenom = utilisateur_in.prenom
-            utilisateur.email = utilisateur_in.email
-            utilisateur.telephone = utilisateur_in.telephone
+            utilisateur.email = clean_email
+            utilisateur.telephone = clean_phone
             utilisateur.role = utilisateur_in.role
             utilisateur.hashed_password = hash_password(utilisateur_in.password)
+            print(f"🛠️ CREATE_USER [UPDATED_FIELDS]: Email set to {utilisateur.email}")
     else:
         # Nouvel utilisateur
+        print(f"✨ CREATE_USER [NEW]: Creating new user record")
         utilisateur = Utilisateur(
             nom=utilisateur_in.nom,
             prenom=utilisateur_in.prenom,
-            email=utilisateur_in.email,
-            telephone=utilisateur_in.telephone,
+            email=clean_email,
+            telephone=clean_phone,
             role=utilisateur_in.role,
             hashed_password=hash_password(utilisateur_in.password)
         )
@@ -71,6 +82,8 @@ def create_utilisateur(
     session.add(utilisateur)
     session.commit()
     session.refresh(utilisateur)
+
+    print(f"✅ CREATE_USER [SUCCESS]: ID={utilisateur.id}, Email={utilisateur.email}, PasswordHashPrefix={utilisateur.hashed_password[:10]}")
 
     # Envoyer l'email (asynchrone via BackgroundTasks)
     background_tasks.add_task(send_verification_email, utilisateur.email, token)

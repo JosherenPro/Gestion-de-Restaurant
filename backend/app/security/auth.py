@@ -35,14 +35,26 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 def authentificate_user(session: Session, email: str, password: str) -> Utilisateur | None:
     """Vérifier les informations d'identification de l'utilisateur."""
-    statement = select(Utilisateur).where(Utilisateur.email == email)
+    clean_email = email.lower().strip()
+    print(f"🔑 AUTH [START]: Tentative pour {clean_email}...")
+    
+    statement = select(Utilisateur).where(Utilisateur.email == clean_email)
     utilisateur = session.exec(statement).first()
+    
     if not utilisateur:
+        print(f"❌ AUTH [FAIL]: Utilisateur {clean_email} non trouvé dans la DB.")
         return None
-    if not verify_password(password, utilisateur.hashed_password):
+        
+    is_password_correct = verify_password(password, utilisateur.hashed_password)
+    if not is_password_correct:
+        print(f"❌ AUTH [FAIL]: Mot de passe incorrect pour {clean_email}. HashPrefix={utilisateur.hashed_password[:10]}")
         return None
+        
     if not utilisateur.active:
+        print(f"❌ AUTH [FAIL]: Compte {clean_email} désactivé.")
         return None
+        
+    print(f"✅ AUTH [SUCCESS]: {clean_email} (ID={utilisateur.id}, Role={utilisateur.role}, Verified={utilisateur.is_verified})")
     return utilisateur
 
 

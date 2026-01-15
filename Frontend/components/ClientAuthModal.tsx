@@ -34,9 +34,12 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
     setError(null);
     setLoading(true);
 
+    const email = loginEmail.trim().toLowerCase();
+    const password = loginPassword.trim(); // Trim password as per instruction
+
     try {
-      console.log('?? Tentative de connexion avec:', loginEmail);
-      await globalLogin(loginEmail, loginPassword);
+      console.log('🔐 Tentative de connexion avec:', email);
+      await globalLogin(email, password);
 
       const token = localStorage.getItem('auth_token') || '';
       const userData = await apiService.getCurrentUser(token);
@@ -44,7 +47,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
       onSuccess(token, userData);
       onClose();
     } catch (err: any) {
-      console.error('? Erreur de connexion:', err);
+      console.error('❌ Erreur de connexion:', err);
       const errorMessage = err.message || 'Erreur de connexion';
       setError(errorMessage);
 
@@ -63,15 +66,24 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
     setLoading(true);
 
     try {
-      console.log('📝 Tentative d\'inscription avec:', registerData);
+      // Clean data immediately after form submission
+      const cleanedRegisterData = {
+        nom: registerData.nom.trim(),
+        prenom: registerData.prenom.trim(),
+        email: registerData.email.trim().toLowerCase(),
+        telephone: registerData.telephone.trim(),
+        mot_de_passe: registerData.mot_de_passe,
+      };
+
+      console.log('📝 Tentative d\'inscription avec:', cleanedRegisterData);
 
       // Prepare data for API (map fields to match backend schema)
       const apiData = {
-        nom: registerData.nom,
-        prenom: registerData.prenom,
-        email: registerData.email,
-        telephone: registerData.telephone,
-        password: registerData.mot_de_passe,
+        nom: cleanedRegisterData.nom,
+        prenom: cleanedRegisterData.prenom,
+        email: cleanedRegisterData.email,
+        telephone: cleanedRegisterData.telephone,
+        password: cleanedRegisterData.mot_de_passe,
         role: 'client'
       };
 
@@ -98,7 +110,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({ isOpen, onClos
       // Auto-login after registration
       try {
         console.log('🔄 Auto-connexion après inscription...');
-        await globalLogin(registerData.email, registerData.mot_de_passe);
+        await globalLogin(cleanedRegisterData.email, cleanedRegisterData.mot_de_passe);
 
         const token = localStorage.getItem('auth_token') || '';
         const userData = await apiService.getCurrentUser(token);
