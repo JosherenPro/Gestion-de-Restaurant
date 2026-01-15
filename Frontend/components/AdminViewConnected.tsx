@@ -24,7 +24,7 @@ export const AdminViewConnected: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000); // Refresh every 10 seconds
+    const interval = setInterval(loadData, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, [token, currentView]);
 
