@@ -160,6 +160,22 @@ async def annuler_reservation_endpoint(
     reservation = annuler_reservation(session, reservation_id)
     return reservation
 
+@router.post("/{reservation_id}/no-show", response_model=ReservationRead)
+async def mark_no_show_endpoint(
+    reservation_id: int = Path(...),
+    session: Session = Depends(get_session),
+    current_user: Utilisateur = Depends(get_current_user)
+):
+    """Marquer un client comme absent (Pénalité). (Personnel uniquement)."""
+    if current_user.role.upper() == "CLIENT":
+         raise HTTPException(status_code=403, detail="Action réservée au personnel.")
+         
+    from app.services.reservation_service import mark_no_show
+    reservation = mark_no_show(session, reservation_id)
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    return reservation
+
 @router.get("/disponibilite/", response_model=bool)
 async def check_disponibilite_endpoint(
     table_id: int,

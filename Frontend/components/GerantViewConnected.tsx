@@ -307,10 +307,17 @@ export const GerantViewConnected: React.FC = () => {
                         apiService.getRevenueStats(authToken).catch((e) => [])
                     ]);
                     setStats(statsData);
-                    setRevenueStats(revenueData.length > 0 ? revenueData : [
-                        { name: 'Lun', sales: 0 }, { name: 'Mar', sales: 0 }, { name: 'Mer', sales: 0 },
-                        { name: 'Jeu', sales: 0 }, { name: 'Ven', sales: 0 }, { name: 'Sam', sales: 0 }, { name: 'Dim', sales: 0 }
-                    ]);
+                    const formattedRevenueData = revenueData.length > 0
+                        ? revenueData.map((d: any) => ({
+                            name: new Date(d.periode).toLocaleDateString('fr-FR', { weekday: 'short' }),
+                            date: d.periode, // Keep full date for tooltip or other uses
+                            sales: d.revenu
+                        })).reverse() // Backend returns newest first, chart usually needs oldest first
+                        : [
+                            { name: 'Lun', sales: 0 }, { name: 'Mar', sales: 0 }, { name: 'Mer', sales: 0 },
+                            { name: 'Jeu', sales: 0 }, { name: 'Ven', sales: 0 }, { name: 'Sam', sales: 0 }, { name: 'Dim', sales: 0 }
+                        ];
+                    setRevenueStats(formattedRevenueData);
                     setTopPlats(topPlatsData.map((p: any) => ({
                         plat_id: p.plat_id,
                         nom_plat: p.nom || p.nom_plat || 'Plat inconnu',
@@ -354,7 +361,14 @@ export const GerantViewConnected: React.FC = () => {
                     ]);
                     setStats(statsData2);
                     setPlats(platsForStats);
-                    setRevenueStats(revenueData2);
+                    const formattedRevenueDataStats = revenueData2.length > 0
+                        ? revenueData2.map((d: any) => ({
+                            name: new Date(d.periode).toLocaleDateString('fr-FR', { weekday: 'short' }),
+                            date: d.periode,
+                            sales: d.revenu
+                        })).reverse()
+                        : [];
+                    setRevenueStats(formattedRevenueDataStats);
                     setTopPlats(topPlatsData2.map((p: any) => ({
                         plat_id: p.plat_id,
                         nom_plat: p.nom || p.nom_plat || 'Plat inconnu',
@@ -502,13 +516,11 @@ export const GerantViewConnected: React.FC = () => {
     };
 
     // Helper to resolve Image URL
-    const getImageUrl = (path: string) => {
-        if (!path) return '';
-        if (path.startsWith('http')) return path;
-        // Remove leading slash if present to avoid double slash if BASE_URL ends with slash
-        const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-        const baseUrl = API_CONFIG.BASE_URL.endsWith('/') ? API_CONFIG.BASE_URL : `${API_CONFIG.BASE_URL}/`;
-        return `${baseUrl}${cleanPath}`;
+    // Helper to resolve Image URL
+    const getImageUrl = (url: string | null | undefined) => {
+        if (!url) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c';
+        if (url.startsWith('http')) return url;
+        return `${API_CONFIG.BASE_URL}${url}`;
     };
 
     return (
@@ -1052,39 +1064,76 @@ export const GerantViewConnected: React.FC = () => {
                                     </div>
                                 </Card>
 
-                                <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-gray-100">
-                                    <h3 className="font-black text-2xl mb-8 text-[#03081F] tracking-tighter uppercase">Leaderboard Produits</h3>
-                                    <div className="overflow-x-auto no-scrollbar">
-                                        <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="border-b-2 border-gray-50">
-                                                    <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em]">Rang</th>
-                                                    <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em]">Nom du Plat</th>
-                                                    <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em] text-right">Prix Unit.</th>
-                                                    <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em] text-right">Volume</th>
-                                                    <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em] text-right">C.A</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50">
-                                                {topPlats.map((plat, i) => (
-                                                    <tr key={i} className="group cursor-pointer">
-                                                        <td className="py-6">
-                                                            <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black ${i < 3 ? 'bg-[#FC8A06] text-white shadow-xl shadow-orange-200' : 'bg-gray-100 text-gray-400'}`}>
-                                                                #{i + 1}
-                                                            </span>
-                                                        </td>
-                                                        <td className="py-6 font-black text-[#03081F] uppercase tracking-tighter group-hover:text-[#FC8A06] transition-colors">{plat.nom}</td>
-                                                        <td className="py-6 text-right font-bold text-gray-400">
-                                                            {(plat.chiffre_affaires && plat.quantite_vendue)
-                                                                ? (plat.chiffre_affaires / plat.quantite_vendue).toFixed(0)
-                                                                : '-'} <span className="text-[10px]">CFA</span>
-                                                        </td>
-                                                        <td className="py-6 text-right font-black text-[#03081F]">{plat.quantite_vendue}</td>
-                                                        <td className="py-6 text-right font-black text-emerald-500">{plat.chiffre_affaires?.toLocaleString()} <span className="text-[10px]">CFA</span></td>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <Card className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-gray-100">
+                                        <h3 className="font-black text-2xl mb-8 text-[#03081F] tracking-tighter uppercase">Revenus Journaliers</h3>
+                                        <div className="overflow-x-auto no-scrollbar">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b-2 border-gray-50">
+                                                        <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em]">Date</th>
+                                                        <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em] text-right">Revenu</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {revenueStats.slice().reverse().map((day: any, i: number) => (
+                                                        <tr key={i} className="group hover:bg-gray-50 transition-colors">
+                                                            <td className="py-4 text-sm font-bold text-[#03081F]">
+                                                                {day.date ? new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' }) : day.name}
+                                                            </td>
+                                                            <td className="py-4 text-right">
+                                                                <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-sm font-black">
+                                                                    {day.sales.toLocaleString()} FCFA
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {revenueStats.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={2} className="py-8 text-center text-gray-400 text-sm font-bold opacity-50">
+                                                                Aucune donnée disponible
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </Card>
+
+                                    <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-gray-100">
+                                        <h3 className="font-black text-2xl mb-8 text-[#03081F] tracking-tighter uppercase">Leaderboard Produits</h3>
+                                        <div className="overflow-x-auto no-scrollbar">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b-2 border-gray-50">
+                                                        <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em]">Rang</th>
+                                                        <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em]">Nom du Plat</th>
+                                                        <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em] text-right">Prix Unit.</th>
+                                                        <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em] text-right">Volume</th>
+                                                        <th className="pb-6 text-[10px] font-black uppercase text-gray-300 tracking-[0.2em] text-right">C.A</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {topPlats.map((plat, i) => (
+                                                        <tr key={i} className="group cursor-pointer">
+                                                            <td className="py-6">
+                                                                <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black ${i < 3 ? 'bg-[#FC8A06] text-white shadow-xl shadow-orange-200' : 'bg-gray-100 text-gray-400'}`}>
+                                                                    #{i + 1}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-6 font-black text-[#03081F] uppercase tracking-tighter group-hover:text-[#FC8A06] transition-colors">{plat.nom}</td>
+                                                            <td className="py-6 text-right font-bold text-gray-400">
+                                                                {(plat.chiffre_affaires && plat.quantite_vendue)
+                                                                    ? (plat.chiffre_affaires / plat.quantite_vendue).toFixed(0)
+                                                                    : '-'} <span className="text-[10px]">CFA</span>
+                                                            </td>
+                                                            <td className="py-6 text-right font-black text-[#03081F]">{plat.quantite_vendue}</td>
+                                                            <td className="py-6 text-right font-black text-emerald-500">{plat.chiffre_affaires?.toLocaleString()} <span className="text-[10px]">CFA</span></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

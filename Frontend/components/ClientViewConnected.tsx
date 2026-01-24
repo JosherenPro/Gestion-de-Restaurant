@@ -47,9 +47,9 @@ export const ClientView: React.FC = () => {
   const [clientToken, setClientToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [clientData, setClientData] = useState<any>(null);
 
-  // Payment state
+  //Payment state
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'especes' | 'carte' | 'mobile'>('carte');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
@@ -77,6 +77,11 @@ export const ClientView: React.FC = () => {
   const [selectedPlat, setSelectedPlat] = useState<MenuItem | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  // Order Tracking State
+  const [orderElapsedTime, setOrderElapsedTime] = useState(0);
+  const [isRefreshingOrder, setIsRefreshingOrder] = useState(false);
+  const previousOrderStatusRef = React.useRef<OrderStatus | null>(null);
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({ message, type });
@@ -296,6 +301,70 @@ export const ClientView: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('client_basket', JSON.stringify(basket));
   }, [basket]);
+
+  // Auto-refresh order status when tracking (every 10 seconds)
+  useEffect(() => {
+    if (step !== 'TRACKING' || !currentOrder) return;
+
+    const refreshOrderStatus = async () => {
+      if (isRefreshingOrder) return;
+      setIsRefreshingOrder(true);
+      try {
+        const orders = await apiService.getCommandes(clientToken || undefined);
+        const updatedOrder = orders.find((o: Order) => o.id === currentOrder.id);
+        if (updatedOrder) {
+          // Check for status change and show toast
+          if (previousOrderStatusRef.current && previousOrderStatusRef.current !== updatedOrder.status) {
+            const statusMessages: Record<string, string> = {
+              [OrderStatus.VALIDEE]: '✅ Commande validée par le serveur !',
+              [OrderStatus.EN_COURS]: '👨‍🍳 Votre commande est en préparation !',
+              [OrderStatus.PRETE]: '🍽️ Votre commande est prête !',
+              [OrderStatus.SERVIE]: '✨ Commande servie ! Bon appétit !',
+            };
+            const message = statusMessages[updatedOrder.status];
+            if (message) {
+              showToast(message, 'success');
+              // Play notification sound for important status changes
+              try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAoAEoKshpFoS0VwqNXPmWQdBTeS0NesewgAF4yyj5dvT0hxptHPmWYfBjaN0NaseQcAGY+1k5lzVEtuptDOmGYfBjaN0NaseQcA');
+                audio.volume = 0.5;
+                audio.play().catch(() => { });
+              } catch (e) { }
+            }
+          }
+          previousOrderStatusRef.current = updatedOrder.status;
+          setCurrentOrder(updatedOrder);
+        }
+      } catch (err) {
+        console.error('Error refreshing order:', err);
+      } finally {
+        setIsRefreshingOrder(false);
+      }
+    };
+
+    // Initial load
+    previousOrderStatusRef.current = currentOrder.status;
+
+    const interval = setInterval(refreshOrderStatus, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [step, currentOrder?.id, clientToken]);
+
+  // Calculate elapsed time since order creation
+  useEffect(() => {
+    if (!currentOrder?.created_at && !currentOrder?.date_commande) return;
+
+    const updateElapsedTime = () => {
+      const orderDate = currentOrder.created_at || currentOrder.date_commande;
+      if (orderDate) {
+        const elapsed = Math.floor((Date.now() - new Date(orderDate).getTime()) / 60000);
+        setOrderElapsedTime(elapsed);
+      }
+    };
+
+    updateElapsedTime();
+    const interval = setInterval(updateElapsedTime, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [currentOrder?.created_at, currentOrder?.date_commande]);
 
   // Fetch Addition
   const fetchAddition = async () => {
@@ -909,6 +978,21 @@ export const ClientView: React.FC = () => {
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-black text-[#03081F] mb-2">Commande Confirmée !</h2>
                 <p className="text-sm text-gray-500 font-medium">Commande #{currentOrder.id}</p>
+                {/* Elapsed Time & Auto-refresh indicator */}
+                <div className="flex items-center justify-center gap-4 mt-3">
+                  <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-xl">
+                    <Clock className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-bold text-blue-600">
+                      {orderElapsedTime < 1 ? 'À l\'instant' : `${orderElapsedTime} min`}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${isRefreshingOrder ? 'bg-orange-50' : 'bg-green-50'}`}>
+                    <div className={`w-2 h-2 rounded-full ${isRefreshingOrder ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></div>
+                    <span className={`text-xs font-bold ${isRefreshingOrder ? 'text-orange-600' : 'text-green-600'}`}>
+                      {isRefreshingOrder ? 'Actualisation...' : 'En direct'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Enhanced Timeline */}
@@ -1401,9 +1485,9 @@ export const ClientView: React.FC = () => {
 
               <div className="space-y-3">
                 {[
-                  { id: 'card', icon: CreditCard, label: 'Carte bancaire', color: 'from-blue-500 to-indigo-600' },
+                  { id: 'carte', icon: CreditCard, label: 'Carte bancaire', color: 'from-blue-500 to-indigo-600' },
                   { id: 'mobile', icon: Smartphone, label: 'Mobile Money', color: 'from-orange-500 to-red-500' },
-                  { id: 'cash', icon: Wallet, label: 'Espèces', color: 'from-green-500 to-emerald-600' }
+                  { id: 'especes', icon: Wallet, label: 'Espèces', color: 'from-green-500 to-emerald-600' }
                 ].map(method => (
                   <button
                     key={method.id}

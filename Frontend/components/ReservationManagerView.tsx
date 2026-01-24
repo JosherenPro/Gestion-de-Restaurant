@@ -67,6 +67,21 @@ export const ReservationManagerView: React.FC = () => {
     }
   };
 
+  const handleNoShow = async (id: number) => {
+    if (!window.confirm("Voulez-vous vraiment signaler ce client comme absent ? Une pénalité sera ajoutée à son profil.")) return;
+
+    try {
+      setActionLoading(true);
+      await apiService.markReservationNoShow(id, getToken());
+      await fetchReservations();
+      setIsDetailModalOpen(false);
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusBadge = (statut: string) => {
     switch (statut) {
       case 'EN_ATTENTE':
@@ -88,6 +103,12 @@ export const ReservationManagerView: React.FC = () => {
           <div className="flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1 rounded-full">
             <X className="w-3 h-3" />
             <span className="text-xs font-bold uppercase">Annulee</span>
+          </div>
+        );
+      case 'NON_PRESENT':
+        return (
+          <div className="flex items-center gap-2 bg-gray-100 text-gray-600 px-3 py-1 rounded-full border border-gray-200">
+            <span className="text-xs font-black uppercase">⚠️ Absent</span>
           </div>
         );
       default:
@@ -378,6 +399,19 @@ export const ReservationManagerView: React.FC = () => {
                 >
                   {actionLoading ? <Loader className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
                   Refuser
+                </button>
+              </div>
+            )}
+
+            {selectedReservation.status === 'CONFIRMEE' && (
+              <div className="pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => handleNoShow(selectedReservation.id)}
+                  disabled={actionLoading}
+                  className="w-full bg-gray-100 text-gray-500 py-3 rounded-xl font-bold hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+                >
+                  {actionLoading ? <Loader className="w-4 h-4 animate-spin" /> : <AlertCircle className="w-4 h-4" />}
+                  Signaler Absence (Client Absent)
                 </button>
               </div>
             )}

@@ -4,7 +4,7 @@ import { apiService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import { Order, OrderStatus, Table, TableStatus } from '../types';
 import { Card, Button, Badge, Modal } from './UI';
-import { LayoutGrid, ClipboardList, UserPlus, CheckCircle2, ChevronRight, Plus, Minus, Loader, RefreshCcw, LogOut, ChefHat, Bell, BellRing, Timer, XCircle } from 'lucide-react';
+import { LayoutGrid, ClipboardList, UserPlus, CheckCircle2, ChevronRight, Plus, Minus, Loader, RefreshCcw, LogOut, ChefHat, Bell, BellRing, Timer, XCircle, Users, Search } from 'lucide-react';
 import { formatPrice } from '../mockData';
 
 export const ServerViewConnected: React.FC = () => {
@@ -18,6 +18,7 @@ export const ServerViewConnected: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'TABLES' | 'COMMANDES'>('TABLES');
@@ -25,14 +26,34 @@ export const ServerViewConnected: React.FC = () => {
   const [hasNewPendingOrders, setHasNewPendingOrders] = useState(false);
   const previousPendingCountRef = useRef(0);
 
+  // Ready orders notification state
+  const [readyOrdersCount, setReadyOrdersCount] = useState(0);
+  const [hasNewReadyOrders, setHasNewReadyOrders] = useState(false);
+  const previousReadyCountRef = useRef(0);
+
   // Refusal State
   const [isRefuseOpen, setIsRefuseOpen] = useState(false);
   const [refuseReason, setRefuseReason] = useState('');
   const [orderToRefuse, setOrderToRefuse] = useState<Order | null>(null);
   const [refuseLoading, setRefuseLoading] = useState(false);
 
+  // Client Selection State
+  const [clients, setClients] = useState<any[]>([]);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
+
+  // Order Details State
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<Order | null>(null);
+  const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
+
   const loadingRef = React.useRef(false);
   const isFirstLoad = React.useRef(true);
+
+  const getImageUrl = (url: string | null) => {
+    if (!url) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c';
+    if (url.startsWith('http')) return url;
+    return `${API_CONFIG.BASE_URL}${url}`;
+  };
 
   useEffect(() => {
     loadData();
@@ -56,7 +77,14 @@ export const ServerViewConnected: React.FC = () => {
         apiService.getCategories(token)
       ]);
 
-      setTables(tablesData);
+      // Load clients separately to avoid breaking destructuring if API fails or changes
+      apiService.getClients(token).then(setClients).catch(() => setClients([]));
+
+      // Sort tables naturally (e.g., 1, 2, 10 instead of 1, 10, 2)
+      const sortedTables = [...tablesData].sort((a: Table, b: Table) =>
+        a.numero_table.localeCompare(b.numero_table, undefined, { numeric: true })
+      );
+      setTables(sortedTables);
       setOrders(commandesData);
       setPlats(platsData);
       setCategories(categoriesData);
@@ -68,7 +96,7 @@ export const ServerViewConnected: React.FC = () => {
 
       setPendingOrdersCount(currentPendingCount);
 
-      // Notification logic
+      // Notification logic for pending orders
       if (!isFirstLoad.current) {
         if (currentPendingCount > previousPendingCountRef.current) {
           setHasNewPendingOrders(true);
@@ -86,6 +114,28 @@ export const ServerViewConnected: React.FC = () => {
       }
 
       previousPendingCountRef.current = currentPendingCount;
+
+      // Check for new ready orders (from kitchen)
+      const currentReadyCount = commandesData.filter(
+        (o: Order) => o.status === OrderStatus.PRETE
+      ).length;
+
+      setReadyOrdersCount(currentReadyCount);
+
+      // Notification logic for ready orders
+      if (!isFirstLoad.current && currentReadyCount > previousReadyCountRef.current) {
+        setHasNewReadyOrders(true);
+        // Play a different notification sound for ready orders
+        try {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          audio.volume = 0.7;
+          audio.play().catch(() => { });
+        } catch (e) { }
+        // Clear notification after 5 seconds
+        setTimeout(() => setHasNewReadyOrders(false), 5000);
+      }
+      previousReadyCountRef.current = currentReadyCount;
+
       setError(null);
     } catch (err: any) {
       console.error('Error loading data:', err);
@@ -167,7 +217,7 @@ export const ServerViewConnected: React.FC = () => {
       const montantTotal = manualBasket.reduce((acc, item) => acc + (item.prix * item.quantite), 0);
 
       const newOrder = await apiService.createCommande({
-        client_id: user.id,
+        client_id: selectedClient ? selectedClient.id : 82, // Use selected client or falls back to Walk-in Client (ID 82)
         table_id: selectedTable.id,
         type_commande: 'SUR_PLACE',
         montant_total: montantTotal,
@@ -234,7 +284,20 @@ export const ServerViewConnected: React.FC = () => {
             <LogOut size={16} />
           </button>
 
-          {/* Notification Bell for Pending Orders */}
+          {/* Notification Bell for Ready Orders (Kitchen) */}
+          {readyOrdersCount > 0 && (
+            <button
+              onClick={() => setActiveView('COMMANDES')}
+              className={`relative w-10 h-10 rounded-2xl flex items-center justify-center transition-all border ${hasNewReadyOrders ? 'bg-emerald-500 text-white border-emerald-600 animate-bounce' : 'bg-emerald-50 text-emerald-500 border-emerald-100 hover:bg-emerald-100'}`}
+            >
+              <ChefHat size={16} />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                {readyOrdersCount}
+              </span>
+            </button>
+          )}
+
+          {/* Notification Bell for Pending Orders (Client) */}
           {pendingOrdersCount > 0 && (
             <button
               onClick={() => setActiveView('COMMANDES')}
@@ -395,20 +458,186 @@ export const ServerViewConnected: React.FC = () => {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-3xl font-black text-[#03081F] tracking-tighter uppercase">Suivi Service</h2>
-                <div className="flex gap-2 mt-2">
-                  <div className="h-1 w-8 bg-blue-600 rounded-full"></div>
-                  <div className="h-1 w-2 bg-gray-200 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* Order Search Bar */}
+            <div className="mb-8 relative">
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Rechercher par N° Commande, Table, Client..."
+                value={orderSearchQuery}
+                onChange={(e) => setOrderSearchQuery(e.target.value)}
+                className="w-full h-16 pl-16 pr-6 rounded-[2rem] border-none bg-white shadow-xl shadow-blue-900/5 focus:ring-0 text-[#03081F] font-bold placeholder:text-gray-300 transition-all"
+              />
+            </div>
+
+            {/* Orders to Transmit Section (Pending Validation) */}
+            {orders.filter(o => o.status === OrderStatus.EN_ATTENTE_VALIDATION).length > 0 && (
+              <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="bg-orange-50 border-2 border-orange-100 rounded-[2rem] p-6 md:p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <BellRing className="text-orange-600 animate-bounce" size={24} />
+                    <h3 className="text-xl font-black text-orange-800 uppercase tracking-tighter">À Transmettre en Cuisine</h3>
+                    <span className="bg-orange-200 text-orange-800 text-xs font-black px-3 py-1 rounded-full">
+                      {orders.filter(o => o.status === OrderStatus.EN_ATTENTE_VALIDATION).length}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {orders
+                      .filter(o => o.status === OrderStatus.EN_ATTENTE_VALIDATION)
+                      .map(order => {
+                        const waitTime = order.created_at ? Math.round((new Date().getTime() - new Date(order.created_at).getTime()) / 60000) : 0;
+                        const isUrgent = waitTime > 5;
+
+                        return (
+                          <div
+                            key={order.id}
+                            onClick={() => {
+                              setSelectedOrderDetail(order);
+                              setIsOrderDetailOpen(true);
+                            }}
+                            className={`bg-white rounded-2xl p-4 shadow-lg border ${isUrgent ? 'border-red-300 ring-2 ring-red-100' : 'border-orange-100'} flex items-center justify-between group cursor-pointer hover:shadow-orange-200/50 transition-all`}
+                          >
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className={`w-12 h-12 ${isUrgent ? 'bg-red-500 animate-pulse' : 'bg-orange-500'} text-white rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-orange-500/30`}>
+                                T{order.table?.numero_table || order.table_id || '?'}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-black text-[#03081F] text-lg uppercase">#{order.id}</p>
+                                  {isUrgent && (
+                                    <span className="text-[9px] font-black text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+                                      {waitTime} MIN
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                  {order.lignes?.reduce((acc: number, l: any) => acc + l.quantite, 0)} Articles • {order.montant_total?.toLocaleString()} CFA
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openRefuseModal(order);
+                                }}
+                                size="sm"
+                                variant="outline"
+                                className="bg-red-50 hover:bg-red-100 text-red-500 border-red-200 rounded-xl font-black text-[10px] uppercase tracking-widest px-3"
+                              >
+                                <XCircle size={14} />
+                              </Button>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  approveOrder(order.id);
+                                }}
+                                size="sm"
+                                className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20"
+                              >
+                                VALIDER <ChevronRight size={14} className="ml-1" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
-              <div className="bg-blue-50 text-blue-600 px-5 py-2.5 rounded-2xl text-[10px] font-black flex items-center gap-2 uppercase tracking-widest border border-blue-100 italic">
-                {orders.filter(o => o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE).length} Actives
+            )}
+
+            {/* Ready to Serve Section */}
+            {orders.filter(o => o.status === OrderStatus.PRETE).length > 0 && (
+              <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="bg-emerald-50 border-2 border-emerald-100 rounded-[2rem] p-6 md:p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <ChefHat className="text-emerald-600 animate-bounce" size={24} />
+                    <h3 className="text-xl font-black text-emerald-800 uppercase tracking-tighter">Prêt à Servir</h3>
+                    <span className="bg-emerald-200 text-emerald-800 text-xs font-black px-3 py-1 rounded-full">
+                      {orders.filter(o => o.status === OrderStatus.PRETE).length}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {orders
+                      .filter(o => o.status === OrderStatus.PRETE)
+                      .map(order => (
+                        <div
+                          key={order.id}
+                          onClick={() => {
+                            setSelectedOrderDetail(order);
+                            setIsOrderDetailOpen(true);
+                          }}
+                          className="bg-white rounded-2xl p-4 shadow-lg border border-emerald-100 flex items-center justify-between group cursor-pointer hover:shadow-emerald-200/50 transition-all"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-emerald-500/30">
+                              T{order.table?.numero_table || order.table_id || '?'}
+                            </div>
+                            <div>
+                              <p className="font-black text-[#03081F] text-lg uppercase">#{order.id}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                {order.lignes?.reduce((acc: number, l: any) => acc + l.quantite, 0)} Articles
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markServed(order.id);
+                            }}
+                            size="sm"
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20"
+                          >
+                            SERVIR <ChevronRight size={14} className="ml-1" />
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
               </div>
+            )}
+
+            <div className="bg-blue-50 text-blue-600 px-5 py-2.5 rounded-2xl text-[10px] font-black flex items-center gap-2 uppercase tracking-widest border border-blue-100 italic">
+              {orders.filter(o => {
+                const matchesStatus = o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE && o.status !== OrderStatus.PRETE && o.status !== OrderStatus.EN_ATTENTE_VALIDATION; // Exclude Ready and Pending from count
+                if (!matchesStatus) return false;
+
+                if (!orderSearchQuery) return true;
+
+                const query = orderSearchQuery.toLowerCase();
+                const matchesId = o.id.toString().includes(query);
+                const matchesTable = o.table?.numero_table?.toLowerCase().includes(query) || o.table_id.toString().includes(query);
+                const matchesClient = o.client?.utilisateur ?
+                  `${o.client.utilisateur.prenom} ${o.client.utilisateur.nom}`.toLowerCase().includes(query) :
+                  false;
+
+                return matchesId || matchesTable || matchesClient;
+              }).length} En Cours
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
               {orders
-                .filter(o => o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE)
-                .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+                .filter(o => {
+                  const matchesStatus = o.status !== OrderStatus.SERVIE && o.status !== OrderStatus.PAYEE && o.status !== OrderStatus.PRETE && o.status !== OrderStatus.EN_ATTENTE_VALIDATION; // Exclude Ready and Pending from main list
+                  if (!matchesStatus) return false;
+
+                  if (!orderSearchQuery) return true;
+
+                  const query = orderSearchQuery.toLowerCase();
+                  const matchesId = o.id.toString().includes(query);
+                  const matchesTable = o.table?.numero_table?.toLowerCase().includes(query) || o.table_id.toString().includes(query);
+                  const matchesClient = o.client?.utilisateur ?
+                    `${o.client.utilisateur.prenom} ${o.client.utilisateur.nom}`.toLowerCase().includes(query) :
+                    false;
+
+                  return matchesId || matchesTable || matchesClient;
+                })
+                .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
                 .map(order => (
                   <Card key={order.id} className="p-0 border-none rounded-[2.5rem] bg-white shadow-xl shadow-gray-100 overflow-hidden relative group hover:shadow-2xl transition-all duration-500 border border-gray-50">
                     <div className="p-6 md:p-8">
@@ -418,17 +647,24 @@ export const ServerViewConnected: React.FC = () => {
                             order.status === OrderStatus.EN_ATTENTE_VALIDATION ? 'bg-[#03081F] text-white shadow-blue-900/20' :
                               'bg-gray-100 text-gray-400'
                             }`}>
-                            T{order.table_id || '?'}
+                            {order.table?.numero_table ? `T${order.table.numero_table}` : (order.table_id ? `T${order.table_id}` : '?')}
                           </div>
                           <div>
                             <div className="flex items-center gap-3">
                               <h3 className="font-black text-2xl text-[#03081F] tracking-tighter italic">#{order.id}</h3>
                               <Badge status={order.status} />
                             </div>
-                            <div className="flex items-center gap-3 mt-1.5 font-bold tracking-widest text-[9px] text-gray-400 uppercase">
-                              <span>{(order.date_commande || order.created_at) ? new Date(order.date_commande || order.created_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
-                              <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-                              <span className="text-[#FC8A06] font-black">{order.montant_total?.toLocaleString()} CFA</span>
+                            <div className="flex flex-col gap-1 mt-1.5">
+                              <div className="flex items-center gap-3 font-bold tracking-widest text-[9px] text-gray-400 uppercase">
+                                <span>{(order.date_commande || order.created_at) ? new Date(order.date_commande || order.created_at || '').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) : ''}</span>
+                                <span>{(order.date_commande || order.created_at) ? new Date(order.date_commande || order.created_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                                <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
+                                <span className="text-[#FC8A06] font-black">{order.montant_total?.toLocaleString()} CFA</span>
+                              </div>
+                              <div className="text-[10px] font-bold text-blue-900/60 uppercase tracking-wider flex items-center gap-1">
+                                <Users size={12} />
+                                {order.client?.utilisateur ? `${order.client.utilisateur.prenom} ${order.client.utilisateur.nom}` : 'Client de passage'}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -529,10 +765,11 @@ export const ServerViewConnected: React.FC = () => {
               )}
             </div>
           </div>
+
+
         )}
       </main>
 
-      {/* Premium Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 inset-x-0 h-24 bg-white/90 backdrop-blur-xl border-t border-gray-100 flex items-center justify-around px-8 z-[80] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <button
           onClick={() => setActiveView('TABLES')}
@@ -582,6 +819,76 @@ export const ServerViewConnected: React.FC = () => {
         title={`COMMANDE TABLE ${selectedTable?.numero_table}`}
       >
         <div className="flex flex-col gap-8 pb-4">
+
+          {/* Client Selection Section */}
+          <div className="bg-blue-50/50 p-4 rounded-3xl border border-blue-100">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Client (Optionnel)</h4>
+              {selectedClient && (
+                <button onClick={() => setSelectedClient(null)} className="text-[9px] text-red-400 font-bold hover:underline">Retirer</button>
+              )}
+            </div>
+            {selectedClient ? (
+              <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-blue-100 shadow-sm">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-black">
+                  {selectedClient.prenom?.[0]}{selectedClient.nom?.[0]}
+                </div>
+                <div>
+                  <p className="font-bold text-[#03081F] text-sm">{selectedClient.prenom} {selectedClient.nom}</p>
+                  <p className="text-[10px] text-gray-400">{selectedClient.telephone || selectedClient.email || 'Pas de contact'}</p>
+                </div>
+                {selectedClient.penalites > 0 && (
+                  <div className="ml-auto bg-red-100 text-red-600 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest">
+                    {selectedClient.penalites} Pénalités
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="relative z-20">
+                <input
+                  type="text"
+                  placeholder="Rechercher un client (Nom, Tél)..."
+                  value={clientSearchQuery}
+                  onChange={(e) => setClientSearchQuery(e.target.value)}
+                  className="w-full h-12 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <UserPlus size={16} />
+                </div>
+                {/* Client Dropdown Results */}
+                {clientSearchQuery.length > 1 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 max-h-40 overflow-y-auto z-50">
+                    {clients
+                      .filter(c =>
+                        (c.nom?.toLowerCase() || '').includes(clientSearchQuery.toLowerCase()) ||
+                        (c.prenom?.toLowerCase() || '').includes(clientSearchQuery.toLowerCase()) ||
+                        (c.telephone || '').includes(clientSearchQuery)
+                      )
+                      .slice(0, 5)
+                      .map(client => (
+                        <button
+                          key={client.id}
+                          onClick={() => { setSelectedClient(client); setClientSearchQuery(''); }}
+                          className="w-full text-left p-3 hover:bg-gray-50 flex items-center justify-between border-b border-gray-50 last:border-0"
+                        >
+                          <div>
+                            <p className="font-bold text-xs text-[#03081F]">{client.prenom} {client.nom}</p>
+                            <p className="text-[9px] text-gray-400">{client.email}</p>
+                          </div>
+                          {client.penalites > 0 && (
+                            <span className="text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{client.penalites} ⚠️</span>
+                          )}
+                        </button>
+                      ))}
+                    {clients.filter(c => (c.nom?.toLowerCase() || '').includes(clientSearchQuery.toLowerCase())).length === 0 && (
+                      <div className="p-4 text-center text-gray-400 text-[10px] font-bold">Aucun client trouvé</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Enhanced Search & Filters */}
           <div className="space-y-6">
             <div className="relative group">
@@ -635,7 +942,7 @@ export const ServerViewConnected: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
-                      <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover" />
+                      <img src={getImageUrl(item.image_url)} alt={item.nom} className="w-full h-full object-cover" />
                     </div>
                     <div className="text-left">
                       <p className="font-bold text-[#03081F] text-xs uppercase tracking-tight line-clamp-1">{item.nom}</p>

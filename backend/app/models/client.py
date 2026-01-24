@@ -15,6 +15,8 @@ class Client(SQLModel, table=True):
         foreign_key="utilisateur.id",
         index=True
     )
+    
+    penalites: int = Field(default=0)
 
     # pour les relations ORM permet de lier avec la table utilisateur
     utilisateur: "Utilisateur" = Relationship(

@@ -93,3 +93,24 @@ def delete_reservation(session: Session, reservation_id: int) -> Reservation | N
     session.delete(db_reservation)
     session.commit()
     return db_reservation
+
+def mark_no_show(session: Session, reservation_id: int) -> Reservation | None:
+    """Marquer une réservation comme NON_PRESENTE et ajouter une pénalité au client."""
+    reservation = session.get(Reservation, reservation_id)
+    if not reservation:
+        return None
+        
+    if reservation.status == ReservationStatus.NON_PRESENT:
+        return reservation
+        
+    reservation.status = ReservationStatus.NON_PRESENT
+    
+    # Increment penalites for the client
+    if reservation.client:
+        reservation.client.penalites += 1
+        session.add(reservation.client)
+        
+    session.add(reservation)
+    session.commit()
+    session.refresh(reservation)
+    return reservation

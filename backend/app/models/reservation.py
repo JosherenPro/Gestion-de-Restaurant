@@ -15,6 +15,7 @@ class ReservationStatus(str, Enum):
     CONFIRMEE: str = "confirmee"
     ANNULEE: str = "annulee"
     TERMINEE: str = "terminee"
+    NON_PRESENT: str = "non_present"
 
 
 class ReservationBase(SQLModel):
