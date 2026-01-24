@@ -6,4 +6,5 @@
 *.venv
 *.env
 
-
+backend/scripts/create_test_users.py
+backend/scripts/verify_test_users.py
