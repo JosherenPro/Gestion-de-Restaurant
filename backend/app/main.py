@@ -40,8 +40,11 @@ app.add_middleware(
 )
 
 # Monter le dossier static pour servir les images
-os.makedirs("app/static/uploads", exist_ok=True)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# Utiliser le chemin absolu pour fonctionner correctement quel que soit le répertoire de travail
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+os.makedirs(os.path.join(STATIC_DIR, "uploads"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.on_event("startup")
 def on_startup():

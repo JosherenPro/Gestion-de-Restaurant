@@ -3,7 +3,9 @@ import secrets
 from fastapi import UploadFile
 from pathlib import Path
 
-UPLOAD_DIR = Path("app/static/uploads")
+# Utiliser le chemin absolu basé sur l'emplacement de ce fichier
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 
 def save_upload_file(upload_file: UploadFile, folder: str = "plats") -> str:
     """
@@ -34,10 +36,10 @@ def delete_old_image(image_url: str):
         return
         
     # Convertir l'URL relative en chemin local
-    # /static/uploads/plats/abc.jpg -> app/static/uploads/plats/abc.jpg
+    # /static/uploads/plats/abc.jpg -> static/uploads/plats/abc.jpg
     relative_path = image_url.lstrip("/")
-    # Remplacer 'static' par 'app/static'
-    full_path = Path("app") / relative_path
+    # Utiliser BASE_DIR pour obtenir le chemin complet
+    full_path = BASE_DIR / relative_path
     
     if full_path.exists():
         os.remove(full_path)

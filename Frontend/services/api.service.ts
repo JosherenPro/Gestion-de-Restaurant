@@ -385,6 +385,14 @@ class ApiService {
     return this.get(API_CONFIG.ENDPOINTS.CLIENTS.BY_ID(id), { token });
   }
 
+  async getClients(token: string): Promise<any[]> {
+    return this.get(API_CONFIG.ENDPOINTS.CLIENTS.BASE, { token });
+  }
+
+  async markReservationNoShow(id: number, token: string): Promise<any> {
+    return this.post(`${API_CONFIG.ENDPOINTS.RESERVATIONS.BY_ID(id)}/no-show`, {}, { token });
+  }
+
   // Personnel endpoints
   async getPersonnel(token: string): Promise<any[]> {
     return this.get(API_CONFIG.ENDPOINTS.PERSONNEL.BASE, { token });

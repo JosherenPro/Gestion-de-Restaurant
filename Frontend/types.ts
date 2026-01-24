@@ -56,10 +56,22 @@ export interface OrderItem {
   notes_speciales?: string;
 }
 
+export interface Client {
+  id: number;
+  utilisateur_id: number;
+  utilisateur?: {
+    nom: string;
+    prenom: string;
+    email: string;
+  }
+}
+
 export interface Order {
   id: number;
   client_id: number;
+  client?: Client;
   table_id: number;
+  table?: Table;
   type_commande: TypeCommande;
   status: OrderStatus;
   montant_total: number;
