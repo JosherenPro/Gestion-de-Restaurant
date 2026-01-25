@@ -15,6 +15,14 @@ class LigneCommandeCreate(LigneCommandeBase):
 
 class LigneCommandeRead(LigneCommandeBase):
     id: int
+    plat: Optional["PlatRead"] = None
+
+    class Config:
+        from_attributes = True
+
+# Import at end to avoid circular import
+from app.schemas.plat import PlatRead
+LigneCommandeRead.model_rebuild()
 
 class LigneCommandeUpdate(SQLModel):
     quantite: int | None = None

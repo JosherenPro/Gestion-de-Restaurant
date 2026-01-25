@@ -9,9 +9,16 @@ from app.core.config import settings
 
 engine = create_engine(settings.DATABASE_URL)
 
+from sqlmodel import SQLModel
+from app.models.utilisateur import Utilisateur
+from app.models.plat import Plat
+from app.models.categorie import Categorie
+from app.models.client import Client
+
 def reset_tables_v2():
+    SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        print("Resetting tables (v2)...")
+        print("Resetting tables (v2)... schema created.")
         
         # 1. Clear Commandes and related data first to avoid FK constraints
         # Since we are deleting ALL tables, we effectively need to clear all active orders linked to them

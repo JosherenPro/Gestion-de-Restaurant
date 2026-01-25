@@ -135,6 +135,9 @@ def transmettre_cuisine(session: Session, commande_id: int) -> Commande | None:
     commande = session.get(Commande, commande_id)
     if not commande:
         return None
+    if commande.status == CommandeStatus.EN_COURS:
+        return commande
+
     if commande.status != CommandeStatus.APPROUVEE:
         raise ValueError(f"Action invalide pour le statut: {commande.status}")
     
@@ -149,6 +152,14 @@ def marquer_prete(session: Session, commande_id: int, cuisinier_id: int) -> Comm
     commande = session.get(Commande, commande_id)
     if not commande:
         return None
+    if commande.status == CommandeStatus.PRETE:
+        if commande.cuisinier_id != cuisinier_id:
+            commande.cuisinier_id = cuisinier_id
+            session.add(commande)
+            session.commit()
+            session.refresh(commande)
+        return commande
+
     if commande.status != CommandeStatus.EN_COURS:
         raise ValueError(f"Action invalide pour le statut: {commande.status}")
     
@@ -164,6 +175,9 @@ def marquer_servie(session: Session, commande_id: int) -> Commande | None:
     commande = session.get(Commande, commande_id)
     if not commande:
         return None
+    if commande.status == CommandeStatus.SERVIE:
+        return commande
+
     if commande.status != CommandeStatus.PRETE:
         raise ValueError(f"Action invalide pour le statut: {commande.status}")
     
@@ -178,6 +192,9 @@ def valider_reception(session: Session, commande_id: int) -> Commande | None:
     commande = session.get(Commande, commande_id)
     if not commande:
         return None
+    if commande.status == CommandeStatus.RECEPTIONNEE:
+        return commande
+
     if commande.status != CommandeStatus.SERVIE:
         raise ValueError(f"Action invalide pour le statut: {commande.status}")
     
