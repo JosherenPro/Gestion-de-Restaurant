@@ -1052,6 +1052,150 @@ export const ServerViewConnected: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Order Detail Modal */}
+      <Modal isOpen={isOrderDetailOpen} onClose={() => setIsOrderDetailOpen(false)} title="">
+        {selectedOrderDetail && (
+          <div className="relative flex flex-col h-[85vh] md:h-auto -m-6">
+            {/* Header */}
+            <div className="p-8 bg-white border-b border-gray-100 flex-shrink-0">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-6">
+                  <div className="w-20 h-20 rounded-[1.5rem] bg-[#03081F] text-white flex items-center justify-center font-black text-4xl shadow-xl">
+                    T{selectedOrderDetail.table?.numero_table || selectedOrderDetail.table_id || '?'}
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tighter mb-1 text-[#03081F]">
+                      Commande #{selectedOrderDetail.id}
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <Badge status={selectedOrderDetail.status} />
+                      <span className="flex items-center gap-1 text-xs font-bold text-gray-400">
+                        <Timer size={14} />
+                        {selectedOrderDetail.created_at ? Math.round((new Date().getTime() - new Date(selectedOrderDetail.created_at).getTime()) / 60000) : 0} min
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsOrderDetailOpen(false)}
+                  className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 transition-all"
+                >
+                  <Plus size={20} className="rotate-45" />
+                </button>
+              </div>
+
+              {/* Client Info Section */}
+              <div className="mt-6 flex flex-wrap gap-3 text-gray-500">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200">
+                  <span className="text-xs font-bold uppercase tracking-wider">Client:</span>
+                  <span className="font-black uppercase text-[#03081F]">
+                    {selectedOrderDetail.client?.utilisateur?.prenom ? `${selectedOrderDetail.client.utilisateur.prenom} ${selectedOrderDetail.client.utilisateur.nom}` : 'Client de passage'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200">
+                  <span className="text-xs font-bold uppercase tracking-wider">Type:</span>
+                  <span className="font-black uppercase text-[#03081F]">
+                    {selectedOrderDetail.type_commande === 'a_emporter' ? 'A EMPORTER' : 'SUR PLACE'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Order Notes */}
+              {selectedOrderDetail.notes && (
+                <div className="mt-6 p-4 rounded-xl border-2 bg-yellow-50 border-yellow-200 text-yellow-800">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-lg bg-yellow-100 text-yellow-600">
+                      <Bell size={24} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-yellow-600">Message du Client</p>
+                      <p className="text-lg font-bold leading-tight">{selectedOrderDetail.notes}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+              <div className="space-y-4">
+                {selectedOrderDetail.lignes?.map((ligne: any) => (
+                  <div
+                    key={ligne.id}
+                    className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Dish Thumbnail */}
+                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0">
+                        <img
+                          src={getImageUrl(ligne.plat?.image_url)}
+                          alt={ligne.plat?.nom}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black text-xl text-[#03081F] border border-gray-100">
+                        {ligne.quantite}x
+                      </div>
+                      <div>
+                        <p className="font-black text-lg text-[#03081F]">{ligne.plat?.nom}</p>
+                        {ligne.plat?.categorie && (
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{ligne.plat.categorie.nom}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-[#FC8A06]">{(ligne.prix_unitaire * ligne.quantite)?.toLocaleString()} CFA</p>
+                      <p className="text-[10px] text-gray-400">{ligne.prix_unitaire?.toLocaleString()} / unité</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total */}
+              <div className="mt-6 p-6 bg-white rounded-2xl border border-gray-100 flex justify-between items-center">
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Total</span>
+                <span className="text-2xl font-black text-[#FC8A06]">{selectedOrderDetail.montant_total?.toLocaleString()} CFA</span>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-6 bg-white border-t border-gray-100 flex gap-4">
+              <Button
+                variant="outline"
+                className="flex-1 h-16 rounded-2xl font-black uppercase tracking-widest border-gray-200 hover:bg-gray-50"
+                onClick={() => setIsOrderDetailOpen(false)}
+              >
+                Fermer
+              </Button>
+              {selectedOrderDetail.status === OrderStatus.EN_ATTENTE_VALIDATION && (
+                <Button
+                  fullWidth
+                  className="flex-[2] h-16 rounded-2xl font-black uppercase tracking-widest bg-[#FC8A06] text-white hover:bg-orange-600 shadow-xl shadow-orange-500/20"
+                  onClick={() => {
+                    approveOrder(selectedOrderDetail.id);
+                    setIsOrderDetailOpen(false);
+                  }}
+                >
+                  <CheckCircle2 size={20} className="mr-2" /> Valider et Transmettre
+                </Button>
+              )}
+              {selectedOrderDetail.status === OrderStatus.PRETE && (
+                <Button
+                  fullWidth
+                  className="flex-[2] h-16 rounded-2xl font-black uppercase tracking-widest bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/20"
+                  onClick={() => {
+                    markServed(selectedOrderDetail.id);
+                    setIsOrderDetailOpen(false);
+                  }}
+                >
+                  <ChefHat size={20} className="mr-2" /> Servir à Table
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

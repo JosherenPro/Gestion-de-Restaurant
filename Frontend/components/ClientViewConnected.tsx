@@ -24,6 +24,7 @@ export const ClientView: React.FC = () => {
   const [step, setStep] = useState<'HOME' | 'MENU' | 'MENUS_LIST' | 'TRACKING'>('HOME');
   const [searchTerm, setSearchTerm] = useState('');
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [orderNote, setOrderNote] = useState('');
 
   // Table selection state
   const [tables, setTables] = useState<Table[]>([]);
@@ -187,7 +188,7 @@ export const ClientView: React.FC = () => {
         table_id: selectedTable,
         type_commande: TypeCommande.SUR_PLACE,
         montant_total: totalInCentimes,
-        notes: clientToken ? 'Commande client authentifié' : 'Commande client sans authentification'
+        notes: orderNote || (clientToken ? 'Commande client authentifié' : 'Commande client sans authentification')
       };
 
       const newOrder = await apiService.createCommande(orderData, clientToken || undefined);
@@ -207,6 +208,7 @@ export const ClientView: React.FC = () => {
       console.log('? Commande envoyée aux cuisiniers!');
       setCurrentOrder(newOrder);
       setBasket([]);
+      setOrderNote('');
       setIsBasketOpen(false);
       setStep('TRACKING');
     } catch (error: any) {
@@ -1258,6 +1260,20 @@ export const ClientView: React.FC = () => {
                     <span className="text-4xl font-black text-[#FC8A06]">{formatPrice(totalInCentimes)} FCFA</span>
                   </div>
                   <p className="text-xs text-gray-500 font-medium text-right">Taxes et service inclus</p>
+                </div>
+
+                {/* Order Note Input */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest flex items-center gap-2">
+                    <MessageSquare className="w-3 h-3" />
+                    Message au chef (Optionnel)
+                  </label>
+                  <textarea
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                    placeholder="Ex: Sans sel, sauce à part, allergies..."
+                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] h-24 outline-none focus:border-[#FC8A06] resize-none font-medium text-sm transition-all"
+                  />
                 </div>
 
                 <button

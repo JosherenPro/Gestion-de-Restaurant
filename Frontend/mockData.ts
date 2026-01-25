@@ -151,7 +151,7 @@ export const RESERVATIONS: Reservation[] = [
     table_id: 3,
     date_reservation: '2024-05-20T19:30:00Z',
     nombre_personnes: 4,
-    statut: 'CONFIRMEE'
+    status: 'CONFIRMEE'
   }
 ];
 

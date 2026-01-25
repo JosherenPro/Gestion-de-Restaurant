@@ -1,10 +1,14 @@
-# vider d'inclure les fichiers de projet de visual studio
+# Exclude Visual Studio project files
 .vs
+
+# Environment and local configuration
 *.env
 *.env.local
 *.vscode
 *.venv
-*.env
 
+# Sensitive scripts
 backend/scripts/create_test_users.py
 backend/scripts/verify_test_users.py
+backend/scripts/remove_test_users.py
+backend/scripts/*.py

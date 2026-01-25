@@ -214,6 +214,7 @@ export const GerantViewConnected: React.FC = () => {
     const [personnel, setPersonnel] = useState<any[]>([]);
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [allCommandes, setAllCommandes] = useState<any[]>([]);
+    const [selectedOrder, setSelectedOrder] = useState<any>(null); // For Detail Modal
 
     // Notifications state
     const [hasNewOrders, setHasNewOrders] = useState(false);
@@ -221,6 +222,10 @@ export const GerantViewConnected: React.FC = () => {
     const prevOrdersCountRef = React.useRef(0);
     const prevReservationsCountRef = React.useRef(0);
     const loadingRef = React.useRef(false);
+
+    // Audio Refs
+    const audioOrderRef = React.useRef<HTMLAudioElement | null>(null);
+    const audioReservationRef = React.useRef<HTMLAudioElement | null>(null);
 
     // Modal states
     const [isAddPlatOpen, setIsAddPlatOpen] = useState(false);
@@ -262,6 +267,10 @@ export const GerantViewConnected: React.FC = () => {
     const getToken = () => token || '';
 
     useEffect(() => {
+        // Initialize Audio
+        audioOrderRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Bell
+        audioReservationRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2866/2866-preview.mp3'); // Soft chime
+
         loadData();
         const interval = setInterval(loadData, 30000); // Auto refresh every 30s
         return () => clearInterval(interval);
@@ -341,6 +350,7 @@ export const GerantViewConnected: React.FC = () => {
                     // Check for new orders
                     if (allCmds.length > prevOrdersCountRef.current && prevOrdersCountRef.current > 0) {
                         setHasNewOrders(true);
+                        try { audioOrderRef.current?.play().catch(() => { }); } catch (e) { }
                         setTimeout(() => setHasNewOrders(false), 5000);
                     }
                     prevOrdersCountRef.current = allCmds.length;
@@ -348,6 +358,7 @@ export const GerantViewConnected: React.FC = () => {
                     // Check for new reservations
                     if (reservationsData.length > prevReservationsCountRef.current && prevReservationsCountRef.current > 0) {
                         setHasNewReservations(true);
+                        try { audioReservationRef.current?.play().catch(() => { }); } catch (e) { }
                         setTimeout(() => setHasNewReservations(false), 5000);
                     }
                     prevReservationsCountRef.current = reservationsData.length;
@@ -516,7 +527,6 @@ export const GerantViewConnected: React.FC = () => {
     };
 
     // Helper to resolve Image URL
-    // Helper to resolve Image URL
     const getImageUrl = (url: string | null | undefined) => {
         if (!url) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c';
         if (url.startsWith('http')) return url;
@@ -677,10 +687,14 @@ export const GerantViewConnected: React.FC = () => {
                                             <h3 className="font-black text-xl mb-8 relative z-10 tracking-tighter uppercase">Activité Récente</h3>
                                             <div className="space-y-4 relative z-10 max-h-[300px] overflow-y-auto no-scrollbar">
                                                 {allCommandes.slice(0, 4).map((cmd, i) => (
-                                                    <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/item">
+                                                    <div
+                                                        key={i}
+                                                        onClick={() => setSelectedOrder(cmd)}
+                                                        className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/item cursor-pointer"
+                                                    >
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cmd.status === 'en_attente' ? 'bg-orange-500' : 'bg-emerald-500'
                                                             }`}>
-                                                            <Clock size={16} className="text-white" />
+                                                            {cmd.notes ? <AlertCircle size={16} className="text-white animate-pulse" /> : <Clock size={16} className="text-white" />}
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex justify-between items-start">
@@ -688,6 +702,11 @@ export const GerantViewConnected: React.FC = () => {
                                                                 <span className="text-[8px] font-bold opacity-40 uppercase">{new Date(cmd.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
                                                             <p className="text-[10px] opacity-60 mt-1 font-medium">{cmd.montant_total.toLocaleString()} CFA • Table {cmd.table_id}</p>
+                                                            {cmd.notes && (
+                                                                <p className="text-[9px] text-[#FC8A06] font-bold mt-1 uppercase tracking-wider flex items-center gap-1">
+                                                                    Note Client
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}

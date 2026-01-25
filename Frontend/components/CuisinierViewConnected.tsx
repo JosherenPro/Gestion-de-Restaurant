@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button } from './UI';
-import { ChefHat, Timer, Play, Check, Box, EyeOff, Eye, Loader, RefreshCw, LogOut } from 'lucide-react';
+import { Card, Button, Modal } from './UI';
+import { ChefHat, Timer, Play, Check, Box, EyeOff, Eye, Loader, RefreshCw, LogOut, Info, X } from 'lucide-react';
+import { API_CONFIG } from '../config/api.config';
 import { apiService } from '../services/api.service';
 import { Order, OrderStatus, MenuItem } from '../types';
 import { formatPrice } from '../mockData';
@@ -11,6 +12,8 @@ export const CuisinierViewConnected: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [activeTab, setActiveTab] = useState<'COMMANDES' | 'STOCK'>('COMMANDES');
+  const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -22,6 +25,12 @@ export const CuisinierViewConnected: React.FC = () => {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const previousOrderCountRef = React.useRef(0);
   const isFirstLoad = React.useRef(true);
+
+  const getImageUrl = (url: string | null | undefined) => {
+    if (!url) return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c';
+    if (url.startsWith('http')) return url;
+    return `${API_CONFIG.BASE_URL}${url}`;
+  };
 
   useEffect(() => {
     // Initialize audio
@@ -36,7 +45,7 @@ export const CuisinierViewConnected: React.FC = () => {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (isFirstLoad.current) setLoading(true);
       setError(null);
       const [commandesData, platsData] = await Promise.all([
         apiService.getCommandes(token),
@@ -73,32 +82,34 @@ export const CuisinierViewConnected: React.FC = () => {
   };
 
   const startPreparing = async (orderId: number) => {
+    // Optimistic Update
+    const originalOrders = [...orders];
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: OrderStatus.EN_COURS } : o));
+
     try {
-      setActionLoading(true);
-      setActionLoading(true);
       if (token) {
         await apiService.preparerCommande(orderId, token);
-        await loadData();
+        // No loadData() needed, state is already correct
       }
     } catch (err: any) {
+      // Revert on error
+      setOrders(originalOrders);
       alert('Erreur: ' + err.message);
-    } finally {
-      setActionLoading(false);
     }
   };
 
   const markAsReady = async (orderId: number) => {
+    // Optimistic Update
+    const originalOrders = [...orders];
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: OrderStatus.PRETE } : o));
+
     try {
-      setActionLoading(true);
-      setActionLoading(true);
       if (token) {
         await apiService.commandePrete(orderId, CUISINIER_ID, token);
-        await loadData();
       }
     } catch (err: any) {
+      setOrders(originalOrders);
       alert('Erreur: ' + err.message);
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -231,7 +242,7 @@ export const CuisinierViewConnected: React.FC = () => {
                 </div>
               ) : (
                 aPreparer.map(order => {
-                  const tableNum = order.table_id || '?';
+                  const tableNum = order.table?.numero_table || order.table_id || '?';
                   const waitTime = order.created_at ? Math.round((new Date().getTime() - new Date(order.created_at).getTime()) / 60000) : 0;
 
                   // KDS Color Logic
@@ -253,8 +264,8 @@ export const CuisinierViewConnected: React.FC = () => {
                       className={`p-6 md:p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_70px_rgba(59,130,246,0.1)] transition-all duration-500 animate-in slide-in-from-bottom-5 ${borderColor} ${bgColor}`}
                     >
                       <div className="flex justify-between items-start mb-8">
-                        <div className="flex items-center gap-5">
-                          <div className="bg-[#03081F] text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-xl shadow-blue-900/20">
+                        <div className="flex items-center gap-5 cursor-pointer" onClick={() => setSelectedOrder(order)}>
+                          <div className="bg-[#03081F] text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center font-black text-3xl shadow-xl shadow-blue-900/20 group-hover:scale-110 transition-transform">
                             T{tableNum}
                           </div>
                           <div>
@@ -262,19 +273,34 @@ export const CuisinierViewConnected: React.FC = () => {
                             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg font-black text-xs ${timerColor}`}>
                               <Timer size={14} /> {waitTime} min
                             </div>
+                            {order.notes && (
+                              <div className="mt-2 text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-center font-black uppercase tracking-widest animate-pulse border border-yellow-200">
+                                ⚠️ Note Client
+                              </div>
+                            )}
                           </div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedOrder(order)}
+                          className="bg-gray-100 text-gray-500 hover:bg-gray-200 rounded-xl"
+                        >
+                          <Info size={20} />
+                        </Button>
                       </div>
 
                       <div className="space-y-3 mb-8">
                         {order.lignes?.map((ligne) => (
                           <div
                             key={ligne.id}
-                            className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100"
+                            onClick={() => ligne.plat && setSelectedDish(ligne.plat)}
+                            className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors group/item"
                           >
                             <span className="font-black text-xl text-[#03081F] flex items-center">
                               <span className="bg-[#FC8A06] text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg mr-4 shadow-lg shadow-orange-500/20">{ligne.quantite}</span>
                               {ligne.plat?.nom}
+                              <Info size={16} className="ml-2 text-gray-300 group-hover/item:text-[#FC8A06] transition-colors opacity-0 group-hover/item:opacity-100" />
                             </span>
                           </div>
                         ))}
@@ -327,7 +353,7 @@ export const CuisinierViewConnected: React.FC = () => {
                 </div>
               ) : (
                 enPreparation.map(order => {
-                  const tableNum = order.table_id || '?';
+                  const tableNum = order.table?.numero_table || order.table_id || '?';
                   return (
                     <Card
                       key={order.id}
@@ -339,7 +365,7 @@ export const CuisinierViewConnected: React.FC = () => {
                         <div className="bg-white/10 text-white px-6 py-3 rounded-2xl font-black text-2xl border border-white/10 shadow-lg ring-1 ring-white/20">
                           T{tableNum}
                         </div>
-                        <div className="flex flex-col items-end">
+                        <div className="flex flex-col items-end cursor-pointer" onClick={() => setSelectedOrder(order)}>
                           <div className="flex items-center gap-3 mb-2">
                             <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em]">Coup de feu</span>
                             <div className="flex gap-1">
@@ -349,6 +375,11 @@ export const CuisinierViewConnected: React.FC = () => {
                             </div>
                           </div>
                           <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">En cours depuis {order.updated_at ? Math.round((new Date().getTime() - new Date(order.updated_at).getTime()) / 60000) : 0} min</span>
+                          {order.notes && (
+                            <div className="mt-2 text-[10px] bg-yellow-500 text-white px-2 py-1 rounded text-center font-black uppercase tracking-widest border border-yellow-400 shadow-lg">
+                              ⚠️ Note Client
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -356,11 +387,13 @@ export const CuisinierViewConnected: React.FC = () => {
                         {order.lignes?.map((ligne) => (
                           <div
                             key={ligne.id}
-                            className="flex justify-between items-center bg-white/5 p-5 rounded-[1.5rem] border border-white/5 hover:border-white/20 transition-all duration-300"
+                            onClick={() => ligne.plat && setSelectedDish(ligne.plat)}
+                            className="flex justify-between items-center bg-white/5 p-5 rounded-[1.5rem] border border-white/5 hover:border-white/20 transition-all duration-300 cursor-pointer group/item"
                           >
                             <span className="font-black text-xl flex items-center">
                               <span className="bg-gradient-to-br from-orange-400 to-orange-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg mr-5 shadow-xl shadow-orange-500/40 ring-4 ring-white/5">{ligne.quantite}</span>
                               {ligne.plat?.nom}
+                              <Info size={16} className="ml-2 text-white/30 group-hover/item:text-white transition-colors opacity-0 group-hover/item:opacity-100" />
                             </span>
                           </div>
                         ))}
@@ -390,7 +423,7 @@ export const CuisinierViewConnected: React.FC = () => {
             <Card key={plat.id} className="p-0 bg-white border-none rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.04)] overflow-hidden group border border-gray-100/50 hover:-translate-y-3 transition-all duration-500 relative">
               <div className="relative h-56 md:h-64 w-full overflow-hidden">
                 <img
-                  src={plat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'}
+                  src={getImageUrl(plat.image_url)}
                   className={`w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 ${!plat.disponible ? 'grayscale opacity-40 scale-105' : ''
                     }`}
                   alt={plat.nom}
@@ -444,6 +477,242 @@ export const CuisinierViewConnected: React.FC = () => {
           ))}
         </div>
       )}
+      {/* ORDER DETAIL MODAL */}
+      <Modal isOpen={!!selectedOrder} onClose={() => setSelectedOrder(null)} title="">
+        {selectedOrder && (
+          <div className="relative flex flex-col h-[85vh] md:h-auto -m-6">
+            {/* Header */}
+            <div className={`p-8 ${selectedOrder.status === OrderStatus.EN_COURS ? 'bg-[#03081F] text-white' : 'bg-white text-[#03081F]'} border-b border-gray-100 flex-shrink-0 relative overflow-hidden`}>
+              {selectedOrder.status === OrderStatus.EN_COURS && (
+                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+              )}
+              <div className="flex justify-between items-start relative z-10">
+                <div className="flex items-center gap-6">
+                  <div className={`w-20 h-20 rounded-[1.5rem] flex items-center justify-center font-black text-4xl shadow-xl ${selectedOrder.status === OrderStatus.EN_COURS
+                    ? 'bg-white/10 text-white border border-white/10'
+                    : 'bg-[#03081F] text-white'
+                    }`}>
+                    T{selectedOrder.table?.numero_table || selectedOrder.table_id || '?'}
+                  </div>
+                  <div>
+                    <h2 className={`text-3xl font-black tracking-tighter mb-1 ${selectedOrder.status === OrderStatus.EN_COURS ? 'text-white' : 'text-[#03081F]'}`}>
+                      Commande #{selectedOrder.id}
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${selectedOrder.status === OrderStatus.EN_COURS
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-blue-100 text-blue-600'
+                        }`}>
+                        {selectedOrder.status === OrderStatus.EN_COURS ? 'En cuisson' : 'À préparer'}
+                      </span>
+                      <span className={`flex items-center gap-1 text-xs font-bold ${selectedOrder.status === OrderStatus.EN_COURS ? 'text-white/60' : 'text-gray-400'}`}>
+                        <Timer size={14} />
+                        {selectedOrder.created_at ? Math.round((new Date().getTime() - new Date(selectedOrder.created_at).getTime()) / 60000) : 0} min
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${selectedOrder.status === OrderStatus.EN_COURS
+                    ? 'bg-white/10 text-white hover:bg-white/20'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Client Info Section */}
+              <div className={`mt-6 flex flex-wrap gap-3 ${selectedOrder.status === OrderStatus.EN_COURS ? 'text-white/80' : 'text-gray-500'}`}>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-current/20">
+                  <span className="text-xs font-bold uppercase tracking-wider">Client:</span>
+                  <span className={`font-black uppercase ${selectedOrder.status === OrderStatus.EN_COURS ? 'text-white' : 'text-[#03081F]'}`}>
+                    {selectedOrder.client?.utilisateur?.prenom ? `${selectedOrder.client.utilisateur.prenom} ${selectedOrder.client.utilisateur.nom}` : 'Client de passage'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-current/20">
+                  <span className="text-xs font-bold uppercase tracking-wider">Type:</span>
+                  <span className={`font-black uppercase ${selectedOrder.status === OrderStatus.EN_COURS ? 'text-white' : 'text-[#03081F]'}`}>
+                    {selectedOrder.type_commande === 'a_emporter' ? 'A EMPORTER' : 'SUR PLACE'}
+                  </span>
+                </div>
+              </div>
+
+              {/* GLOBAL ORDER NOTES - Highlighted */}
+              {selectedOrder.notes && (
+                <div className={`mt-6 p-4 rounded-xl border-2 animate-in slide-in-from-left-4 duration-500 ${selectedOrder.status === OrderStatus.EN_COURS
+                  ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-200'
+                  : 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                  }`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`p-2 rounded-lg ${selectedOrder.status === OrderStatus.EN_COURS ? 'bg-yellow-500 text-[#03081F]' : 'bg-yellow-100 text-yellow-600'}`}>
+                      <Info size={24} />
+                    </div>
+                    <div>
+                      <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${selectedOrder.status === OrderStatus.EN_COURS ? 'text-yellow-400' : 'text-yellow-600'}`}>Message du Chef / Client</p>
+                      <p className="text-lg font-bold leading-tight">{selectedOrder.notes}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+              <div className="space-y-4">
+                {selectedOrder.lignes?.map((ligne) => (
+                  <div
+                    key={ligne.id}
+                    onClick={() => {
+                      if (ligne.plat) {
+                        setSelectedOrder(null); // Close order modal
+                        setSelectedDish(ligne.plat); // Open dish detail
+                      }
+                    }}
+                    className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Dish Thumbnail */}
+                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0">
+                        <img
+                          src={getImageUrl(ligne.plat?.image_url)}
+                          alt={ligne.plat?.nom}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black text-xl text-[#03081F] border border-gray-100 group-hover:bg-[#FC8A06] group-hover:text-white transition-colors">
+                        {ligne.quantite}x
+                      </div>
+                      <div>
+                        <p className="font-black text-lg text-[#03081F]">{ligne.plat?.nom}</p>
+                        {ligne.plat?.categorie && (
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{ligne.plat.categorie.nom}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Info size={18} className="text-gray-300" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-6 bg-white border-t border-gray-100 flex gap-4">
+              <Button
+                variant="outline"
+                className="flex-1 h-16 rounded-2xl font-black uppercase tracking-widest border-gray-200 hover:bg-gray-50"
+                onClick={() => setSelectedOrder(null)}
+              >
+                Fermer
+              </Button>
+              {selectedOrder.status === OrderStatus.VALIDEE ? (
+                <Button
+                  fullWidth
+                  className="flex-[2] h-16 rounded-2xl font-black uppercase tracking-widest bg-[#03081F] text-white hover:bg-blue-900 shadow-xl shadow-blue-900/20"
+                  onClick={() => {
+                    startPreparing(selectedOrder.id);
+                    setSelectedOrder(null);
+                  }}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? <Loader className="animate-spin" /> : <><Play size={20} className="mr-2" /> Lancer la cuisson</>}
+                </Button>
+              ) : selectedOrder.status === OrderStatus.EN_COURS ? (
+                <Button
+                  fullWidth
+                  className="flex-[2] h-16 rounded-2xl font-black uppercase tracking-widest bg-green-500 text-white hover:bg-green-600 shadow-xl shadow-green-500/20"
+                  onClick={() => {
+                    markAsReady(selectedOrder.id);
+                    setSelectedOrder(null);
+                  }}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? <Loader className="animate-spin" /> : <><Check size={20} className="mr-2" /> Terminée</>}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* DISH DETAIL MODAL */}
+      <Modal isOpen={!!selectedDish} onClose={() => setSelectedDish(null)} title="">
+        {selectedDish && (
+          <div className="relative -m-6 flex flex-col h-[80vh] md:h-auto">
+            {/* Header Image */}
+            <div className="h-64 relative flex-shrink-0">
+              <img
+                src={getImageUrl(selectedDish.image_url)}
+                className="w-full h-full object-cover"
+                alt={selectedDish.nom}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+              <button
+                onClick={() => setSelectedDish(null)}
+                className="absolute top-4 right-4 w-10 h-10 bg-black/20 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/40 transition-all z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <div className="absolute bottom-6 left-6 right-6">
+                <span className="bg-orange-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2 inline-block shadow-lg">
+                  {selectedDish.categorie?.nom || 'Plat'}
+                </span>
+                <h2 className="text-3xl font-black text-white leading-none tracking-tight">{selectedDish.nom}</h2>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 bg-white p-8 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <Timer size={12} /> Préparation
+                  </p>
+                  <p className="font-black text-[#03081F] text-lg">{selectedDish.temps_preparation || 15} min</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Recette #</p>
+                  <p className="font-black text-[#03081F] text-lg">{selectedDish.id}</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-black text-[#03081F] uppercase tracking-widest mb-3">Description & Dressage</h3>
+                  <p className="text-gray-600 leading-relaxed font-medium bg-blue-50/50 p-6 rounded-2xl border border-blue-50">
+                    {selectedDish.description || "Aucune instruction spécifique pour ce plat. Suivre la fiche technique standard."}
+                  </p>
+                </div>
+
+                {/* Simulated Ingredients - In a real app, this would come from the API */}
+                <div>
+                  <h3 className="text-sm font-black text-[#03081F] uppercase tracking-widest mb-3">Ingrédients Clés</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(selectedDish.description?.split(' ') || ['Ingrédients', 'frais', 'du', 'marché']).slice(0, 5).map((tag, i) => (
+                      <span key={i} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold capitalize">
+                        {tag.replace(/[^a-zA-Z]/g, '')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-[2rem]">
+              <Button
+                fullWidth
+                onClick={() => setSelectedDish(null)}
+                className="h-16 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg"
+              >
+                Fermer la fiche
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div >
   );
 };

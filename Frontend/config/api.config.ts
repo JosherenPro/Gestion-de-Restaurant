@@ -1,5 +1,17 @@
+// Helper to determine if running in local development
+const isLocalDev = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+// Use local backend URL for local development, production URL otherwise
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  return isLocalDev ? 'http://localhost:8000' : 'https://gestion-de-restaurant.onrender.com';
+};
+
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://gestion-de-restaurant.onrender.com',
+  BASE_URL: getBaseUrl(),
   ENDPOINTS: {
     // Auth
     AUTH: {
