@@ -13,7 +13,7 @@ passlib[argon2]
 python-multipart
 pyjwt
 pwdlib[argon2]
-
+cerebras
 python-dotenv
 
 httpx
