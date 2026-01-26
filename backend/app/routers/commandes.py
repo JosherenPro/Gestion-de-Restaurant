@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Body, Path, HTTPException
 from sqlmodel import Session
 from app.core.database import get_session
-from typing import List
+from typing import List, Optional
 
 from app.services.commande_service import (
     create_commande,
@@ -77,7 +77,8 @@ async def read_commande_endpoint(
 @router.get("/", response_model=List[CommandeRead])
 async def list_commandes_endpoint(
     session: Session = Depends(get_session),
-    current_user: Utilisateur = Depends(get_current_user)
+    current_user: Utilisateur = Depends(get_current_user),
+    client_id: Optional[int] = None
 ):
     """Lister les commandes (filtrées pour les clients, toutes pour le staff)."""
     if current_user.role.upper() == "CLIENT":
@@ -85,6 +86,10 @@ async def list_commandes_endpoint(
         if not client:
             return []
         return list_commandes_by_client(session, client.id)
+    
+    # Pour le staff, si client_id est spécifié, on filtre
+    if client_id:
+        return list_commandes_by_client(session, client_id)
         
     return list_commandes(session)
 
