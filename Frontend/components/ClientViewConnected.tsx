@@ -8,6 +8,7 @@ import { API_CONFIG } from '../config/api.config';
 import { formatPrice } from '../mockData';
 import { ClientAuthModal } from './ClientAuthModal';
 import { BottomTabBar } from './BottomTabBar';
+import { ChatWidget } from './ChatWidget';
 
 export const ClientView: React.FC = () => {
   const { categories, plats, loading } = useMenu();
@@ -502,10 +503,10 @@ export const ClientView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-[#FC8A06] mx-auto" />
-          <p className="mt-4 text-gray-500">Chargement du menu...</p>
+          <Loader className="w-8 h-8 md:w-12 md:h-12 animate-spin text-[#FC8A06] mx-auto" />
+          <p className="mt-4 text-gray-500 md:text-lg">Chargement du menu...</p>
         </div>
       </div>
     );
@@ -514,15 +515,15 @@ export const ClientView: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
       {/* FLOATING HEADER - Premium & Glassmorphism */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
-        <div className="max-w-md mx-auto bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/60 p-4 flex items-center justify-between">
-          <button onClick={() => setStep('HOME')} className="flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#FC8A06] to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
-              <ChefHat className="w-6 h-6 text-white" />
+      <header className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 lg:px-8 pt-4">
+        <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/60 p-4 md:p-5 flex items-center justify-between">
+          <button onClick={() => setStep('HOME')} className="flex items-center gap-3 md:gap-4 group">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#FC8A06] to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
+              <ChefHat className="w-6 h-6 md:w-7 md:h-7 text-white" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="font-black text-lg tracking-tight text-[#03081F]">RestoDeluxe</span>
-              <span className="text-[9px] font-bold text-[#FC8A06] uppercase tracking-widest">Expérience Premium</span>
+              <span className="font-black text-lg md:text-xl tracking-tight text-[#03081F]">RestoDeluxe</span>
+              <span className="text-[9px] md:text-[10px] font-bold text-[#FC8A06] uppercase tracking-widest">Expérience Premium</span>
             </div>
           </button>
 
@@ -555,41 +556,44 @@ export const ClientView: React.FC = () => {
         </div>
       </header>
 
-      <div className="max-w-md mx-auto pt-24 pb-32">
+      <div className="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto pt-24 md:pt-28 pb-32 px-4 md:px-6 lg:px-8">
         {/* HOME SCREEN - Hero Section */}
         {step === 'HOME' && (
-          <div className="px-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Hero Banner with Parallax Effect */}
-            <div className="relative h-72 rounded-[2.5rem] overflow-hidden shadow-2xl group">
+            <div className="relative h-72 md:h-96 lg:h-[28rem] rounded-[2.5rem] overflow-hidden shadow-2xl group">
               <img
                 src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80"
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 alt="Restaurant"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-              <div className="absolute bottom-8 left-8 right-8">
+              <div className="absolute bottom-8 left-8 right-8 md:bottom-12 md:left-12 md:right-12">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                  <span className="text-white/90 text-sm font-bold uppercase tracking-widest">Ouvert Maintenant</span>
+                  <span className="text-white/90 text-sm md:text-base font-bold uppercase tracking-widest">Ouvert Maintenant</span>
                 </div>
-                <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-2 tracking-tight">
                   Bienvenue chez<br />RestoDeluxe
                 </h1>
-                <p className="text-white/80 text-sm font-medium flex items-center gap-2">
-                  <Award className="w-4 h-4" />
+                <p className="text-white/80 text-sm md:text-base lg:text-lg font-medium flex items-center gap-2">
+                  <Award className="w-4 h-4 md:w-5 md:h-5" />
                   Cuisine gastronomique • Service premium
                 </p>
               </div>
             </div>
 
             {/* Food Gallery Carousel */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
               {[
                 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80',
                 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-                'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=400&q=80'
-              ].map((img, i) => (
-                <div key={i} className="relative h-32 rounded-[1.5rem] overflow-hidden shadow-lg group cursor-pointer">
+                'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=400&q=80'
+              ].slice(0, window.innerWidth >= 768 ? 6 : 3).map((img, i) => (
+                <div key={i} className="relative h-32 md:h-40 lg:h-48 rounded-[1.5rem] overflow-hidden shadow-lg group cursor-pointer">
                   <img
                     src={img}
                     className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
@@ -603,111 +607,114 @@ export const ClientView: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
               {[
                 { icon: Star, label: '4.9/5', sublabel: 'Avis', color: 'from-yellow-400 to-orange-500' },
                 { icon: Clock, label: '20 min', sublabel: 'Temps moy.', color: 'from-blue-400 to-cyan-500' },
-                { icon: TrendingUp, label: 'Top 3', sublabel: 'Restaurants', color: 'from-purple-400 to-pink-500' }
-              ].map((stat, i) => (
-                <Card key={i} className="p-4 bg-white border-none shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
-                  <div className={`w-10 h-10 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center mb-3 shadow-md`}>
-                    <stat.icon className="w-5 h-5 text-white" />
+                { icon: TrendingUp, label: 'Top 3', sublabel: 'Restaurants', color: 'from-purple-400 to-pink-500' },
+                { icon: Award, label: '5★', sublabel: 'Qualité', color: 'from-emerald-400 to-green-500' },
+                { icon: ChefHat, label: 'Expert', sublabel: 'Chefs', color: 'from-rose-400 to-red-500' },
+                { icon: Sparkles, label: 'Frais', sublabel: 'Produits', color: 'from-indigo-400 to-violet-500' }
+              ].slice(0, window.innerWidth >= 768 ? 6 : 3).map((stat, i) => (
+                <Card key={i} className="p-4 md:p-5 bg-white border-none shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center mb-3 shadow-md`}>
+                    <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
-                  <p className="font-black text-xl text-[#03081F]">{stat.label}</p>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{stat.sublabel}</p>
+                  <p className="font-black text-xl md:text-2xl text-[#03081F]">{stat.label}</p>
+                  <p className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-wider">{stat.sublabel}</p>
                 </Card>
               ))}
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <button
                 onClick={() => setStep('MENU')}
-                className="w-full bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-[1.5rem] p-6 shadow-2xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-1 active:scale-95 group"
+                className="w-full bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white rounded-[1.5rem] p-6 md:p-8 shadow-2xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-1 active:scale-95 group"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
-                      <Sparkles className="w-7 h-7 text-white" />
+                    <div className="w-14 h-14 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                      <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-lg tracking-tight">Commander des Plats</p>
-                      <p className="text-xs text-white/80 font-medium">Parcourir notre carte</p>
+                      <p className="font-black text-lg md:text-xl tracking-tight">Commander des Plats</p>
+                      <p className="text-xs md:text-sm text-white/80 font-medium">Parcourir notre carte</p>
                     </div>
                   </div>
-                  <Plus className="w-6 h-6 text-white" />
+                  <Plus className="w-6 h-6 md:w-8 md:h-8 text-white" />
                 </div>
               </button>
 
               <button
                 onClick={() => setStep('MENUS_LIST')}
-                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-[1.5rem] p-6 shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-95 group"
+                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-[1.5rem] p-6 md:p-8 shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all hover:-translate-y-1 active:scale-95 group"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
-                      <UtensilsCrossed className="w-7 h-7 text-white" />
+                    <div className="w-14 h-14 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                      <UtensilsCrossed className="w-7 h-7 md:w-8 md:h-8 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-lg tracking-tight">Découvrir les Menus</p>
-                      <p className="text-xs text-white/80 font-medium">Formules complètes à prix fixe</p>
+                      <p className="font-black text-lg md:text-xl tracking-tight">Découvrir les Menus</p>
+                      <p className="text-xs md:text-sm text-white/80 font-medium">Formules complètes à prix fixe</p>
                     </div>
                   </div>
-                  <Plus className="w-6 h-6 text-white" />
+                  <Plus className="w-6 h-6 md:w-8 md:h-8 text-white" />
                 </div>
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <button
                 onClick={() => setIsReservationOpen(true)}
-                className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+                className="bg-white rounded-[1.5rem] p-5 md:p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
               >
-                <Calendar className="w-6 h-6 text-[#FC8A06] mb-2" />
-                <p className="font-bold text-sm text-[#03081F]">Réserver</p>
-                <p className="text-[10px] text-gray-400 font-medium">Une table</p>
+                <Calendar className="w-6 h-6 md:w-8 md:h-8 text-[#FC8A06] mb-2" />
+                <p className="font-bold text-sm md:text-base text-[#03081F]">Réserver</p>
+                <p className="text-[10px] md:text-xs text-gray-400 font-medium">Une table</p>
               </button>
 
               <button
                 onClick={() => setIsReviewOpen(true)}
-                className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+                className="bg-white rounded-[1.5rem] p-5 md:p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
               >
-                <Star className="w-6 h-6 text-yellow-400 mb-2" />
-                <p className="font-bold text-sm text-[#03081F]">Avis</p>
-                <p className="text-[10px] text-gray-400 font-medium">Votre expérience</p>
+                <Star className="w-6 h-6 md:w-8 md:h-8 text-yellow-400 mb-2" />
+                <p className="font-bold text-sm md:text-base text-[#03081F]">Avis</p>
+                <p className="text-[10px] md:text-xs text-gray-400 font-medium">Votre expérience</p>
               </button>
 
               {clientToken && (
                 <>
                   <button
                     onClick={fetchMyReservations}
-                    className="bg-white rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
+                    className="bg-white rounded-[1.5rem] p-5 md:p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 border border-gray-100"
                   >
-                    <History className="w-6 h-6 text-blue-500 mb-2" />
-                    <p className="font-bold text-sm text-[#03081F]">Mes Résas</p>
-                    <p className="text-[10px] text-gray-400 font-medium">Historique</p>
+                    <History className="w-6 h-6 md:w-8 md:h-8 text-blue-500 mb-2" />
+                    <p className="font-bold text-sm md:text-base text-[#03081F]">Mes Résas</p>
+                    <p className="text-[10px] md:text-xs text-gray-400 font-medium">Historique</p>
                   </button>
 
                   <button
                     onClick={fetchMyOrders}
-                    className="bg-[#03081F] rounded-[1.5rem] p-5 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 text-white"
+                    className="bg-[#03081F] rounded-[1.5rem] p-5 md:p-6 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 active:scale-95 text-white"
                   >
-                    <ShoppingBasket className="w-6 h-6 text-[#FC8A06] mb-2" />
-                    <p className="font-bold text-sm">Mes Commandes</p>
-                    <p className="text-[10px] text-gray-400 font-medium">Historique</p>
+                    <ShoppingBasket className="w-6 h-6 md:w-8 md:h-8 text-[#FC8A06] mb-2" />
+                    <p className="font-bold text-sm md:text-base">Mes Commandes</p>
+                    <p className="text-[10px] md:text-xs text-gray-400 font-medium">Historique</p>
                   </button>
                 </>
               )}
             </div>
 
             {/* Trust Badges */}
-            <Card className="p-5 bg-gradient-to-br from-gray-50 to-white border-none shadow-sm">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Pourquoi nous choisir</p>
-              <div className="space-y-2">
+            <Card className="p-5 md:p-6 bg-gradient-to-br from-gray-50 to-white border-none shadow-sm">
+              <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 md:mb-4">Pourquoi nous choisir</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
                 {['Ingrédients frais & locaux', 'Service impeccable', 'Ambiance chaleureuse'].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 font-medium">{item}</span>
+                  <div key={i} className="flex items-center gap-3 md:gap-4">
+                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-sm md:text-base text-gray-700 font-medium">{item}</span>
                   </div>
                 ))}
               </div>
@@ -717,13 +724,13 @@ export const ClientView: React.FC = () => {
 
         {/* MENU SCREEN - Enhanced Design */}
         {step === 'MENU' && (
-          <div className="space-y-6">
+          <div className="space-y-6 md:space-y-8">
             {/* Category Chips - Horizontal Scroll */}
-            <div className="px-4 overflow-x-auto no-scrollbar">
-              <div className="flex gap-3 pb-2">
+            <div className="overflow-x-auto no-scrollbar">
+              <div className="flex gap-3 md:gap-4 pb-2 md:flex-wrap md:justify-center">
                 <button
                   onClick={() => setActiveCategory('ALL')}
-                  className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${activeCategory === 'ALL'
+                  className={`whitespace-nowrap px-6 py-3 md:px-8 md:py-4 rounded-[1.2rem] font-bold text-sm md:text-base transition-all ${activeCategory === 'ALL'
                     ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105'
                     : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
                     }`}
@@ -734,7 +741,7 @@ export const ClientView: React.FC = () => {
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`whitespace-nowrap px-6 py-3 rounded-[1.2rem] font-bold text-sm transition-all ${activeCategory === cat.id
+                    className={`whitespace-nowrap px-6 py-3 md:px-8 md:py-4 rounded-[1.2rem] font-bold text-sm md:text-base transition-all ${activeCategory === cat.id
                       ? 'bg-gradient-to-r from-[#FC8A06] to-orange-600 text-white shadow-lg shadow-orange-500/30 scale-105'
                       : 'bg-white text-gray-600 shadow-md hover:shadow-lg'
                       }`}
@@ -746,81 +753,116 @@ export const ClientView: React.FC = () => {
             </div>
 
             {/* Search Bar - Enhanced */}
-            <div className="px-4">
+            <div>
               <div className="relative group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-[#FC8A06] transition-colors" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 md:w-6 md:h-6 md:left-6 group-focus-within:text-[#FC8A06] transition-colors" />
                 <input
                   type="text"
                   placeholder="Rechercher un délice..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border-2 border-gray-100 rounded-[1.5rem] py-4 pl-14 pr-4 shadow-lg focus:border-[#FC8A06] focus:shadow-xl outline-none font-medium transition-all"
+                  className="w-full bg-white border-2 border-gray-100 rounded-[1.5rem] py-4 md:py-5 pl-14 md:pl-16 pr-4 shadow-lg focus:border-[#FC8A06] focus:shadow-xl outline-none font-medium md:text-lg transition-all"
                 />
               </div>
             </div>
 
-            {/* Menu Items - Premium Cards */}
-            <div className="px-4 space-y-4">
+            {/* Menu Items - Premium Cards Grid */}
+            <div>
               {filteredPlats.length === 0 ? (
                 <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
-                    <Search className="w-10 h-10 text-gray-300" />
+                  <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-10 h-10 md:w-12 md:h-12 text-gray-300" />
                   </div>
-                  <p className="text-gray-400 font-medium">Aucun plat trouvé</p>
+                  <p className="text-gray-400 font-medium md:text-lg">Aucun plat trouvé</p>
                 </div>
               ) : (
-                filteredPlats.map((plat, index) => (
-                  <Card
-                    key={plat.id}
-                    onClick={() => setSelectedPlat(plat)}
-                    className="p-0 border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white rounded-[2rem] overflow-hidden group cursor-pointer"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div className="flex gap-0">
-                      {/* Image Section */}
-                      <div className="relative w-32 h-32 flex-shrink-0 overflow-hidden">
-                        <img
-                          src={getImageUrl(plat.image_url)}
-                          className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
-                          alt={plat.nom}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        {/* Add to cart button on image */}
-                        <button
-                          onClick={() => addToBasket(plat)}
-                          className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-[0.8rem] shadow-lg flex items-center justify-center text-[#FC8A06] hover:bg-[#FC8A06] hover:text-white transition-all hover:scale-110 active:scale-95 z-10"
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      {/* Content Section */}
-                      <div className="flex-1 p-4 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <h3 className="font-black text-base text-[#03081F] group-hover:text-[#FC8A06] transition-colors line-clamp-1">
-                              {plat.nom}
-                            </h3>
-                            <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 hover:fill-red-500 transition-all cursor-pointer flex-shrink-0" />
-                          </div>
-                          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredPlats.map((plat, index) => (
+                    <Card
+                      key={plat.id}
+                      onClick={() => setSelectedPlat(plat)}
+                      className="p-0 border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white rounded-[2rem] overflow-hidden group cursor-pointer"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      {/* Desktop: Vertical Card Layout */}
+                      <div className="hidden md:block">
+                        <div className="relative h-48 lg:h-56 overflow-hidden">
+                          <img
+                            src={getImageUrl(plat.image_url)}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            alt={plat.nom}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); addToBasket(plat); }}
+                            className="absolute bottom-4 right-4 w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center text-[#FC8A06] hover:bg-[#FC8A06] hover:text-white transition-all hover:scale-110 active:scale-95 z-10"
+                          >
+                            <Plus className="w-6 h-6" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleFavorite(plat.id); }}
+                            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center transition-all hover:scale-110"
+                          >
+                            <Heart className={`w-5 h-5 transition-colors ${favorites.includes(plat.id) ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} />
+                          </button>
+                        </div>
+                        <div className="p-5">
+                          <h3 className="font-black text-lg text-[#03081F] group-hover:text-[#FC8A06] transition-colors mb-2">
+                            {plat.nom}
+                          </h3>
+                          <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed mb-4">
                             {plat.description || 'Un délicieux plat préparé avec soin par nos chefs'}
                           </p>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-baseline gap-1">
+                          <div className="flex items-center justify-between">
                             <span className="text-2xl font-black text-[#FC8A06]">{formatPrice(plat.prix)} FCFA</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-yellow-400">
-                            <Star className="w-3 h-3 fill-current" />
-                            <span className="text-xs font-bold text-gray-600">4.{Math.floor(Math.random() * 3) + 7}</span>
+                            <div className="flex items-center gap-1 text-yellow-400">
+                              <Star className="w-4 h-4 fill-current" />
+                              <span className="text-sm font-bold text-gray-600">4.{Math.floor(Math.random() * 3) + 7}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                ))
+
+                      {/* Mobile: Horizontal Card Layout */}
+                      <div className="flex gap-0 md:hidden">
+                        <div className="relative w-32 h-32 flex-shrink-0 overflow-hidden">
+                          <img
+                            src={getImageUrl(plat.image_url)}
+                            className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-700"
+                            alt={plat.nom}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); addToBasket(plat); }}
+                            className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-[0.8rem] shadow-lg flex items-center justify-center text-[#FC8A06] hover:bg-[#FC8A06] hover:text-white transition-all hover:scale-110 active:scale-95 z-10"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="flex-1 p-4 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <h3 className="font-black text-base text-[#03081F] group-hover:text-[#FC8A06] transition-colors line-clamp-1">
+                                {plat.nom}
+                              </h3>
+                              <Heart className="w-5 h-5 text-gray-300 hover:text-red-500 hover:fill-red-500 transition-all cursor-pointer flex-shrink-0" />
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
+                              {plat.description || 'Un délicieux plat préparé avec soin par nos chefs'}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-2xl font-black text-[#FC8A06]">{formatPrice(plat.prix)} FCFA</span>
+                            <div className="flex items-center gap-1 text-yellow-400">
+                              <Star className="w-3 h-3 fill-current" />
+                              <span className="text-xs font-bold text-gray-600">4.{Math.floor(Math.random() * 3) + 7}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -828,61 +870,61 @@ export const ClientView: React.FC = () => {
 
         {/* MENUS LIST SCREEN - Display all menus */}
         {step === 'MENUS_LIST' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="px-4">
+          <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div>
               <button
                 onClick={() => setStep('HOME')}
-                className="text-gray-500 hover:text-[#FC8A06] font-medium text-sm flex items-center gap-2 mb-4"
+                className="text-gray-500 hover:text-[#FC8A06] font-medium text-sm md:text-base flex items-center gap-2 mb-4"
               >
-                ? Retour à l'accueil
+                ← Retour à l'accueil
               </button>
-              <h2 className="text-3xl font-black text-[#03081F] mb-2">Nos Menus</h2>
-              <p className="text-gray-500">Découvrez nos formules complètes à prix fixe</p>
+              <h2 className="text-3xl md:text-4xl font-black text-[#03081F] mb-2">Nos Menus</h2>
+              <p className="text-gray-500 md:text-lg">Découvrez nos formules complètes à prix fixe</p>
             </div>
 
             {menusLoading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader className="w-8 h-8 animate-spin text-[#FC8A06]" />
+                <Loader className="w-8 h-8 md:w-12 md:h-12 animate-spin text-[#FC8A06]" />
               </div>
             ) : menus.length === 0 ? (
-              <div className="px-4 text-center py-16">
-                <div className="w-20 h-20 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
-                  <UtensilsCrossed className="w-10 h-10 text-gray-300" />
+              <div className="text-center py-16">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-100 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
+                  <UtensilsCrossed className="w-10 h-10 md:w-12 md:h-12 text-gray-300" />
                 </div>
-                <p className="text-gray-400 font-medium">Aucun menu disponible pour le moment</p>
+                <p className="text-gray-400 font-medium md:text-lg">Aucun menu disponible pour le moment</p>
               </div>
             ) : (
-              <div className="px-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 {menus.filter((menu: Menu) => menu.actif).map((menu: Menu, index: number) => (
                   <Card
                     key={menu.id}
                     className="p-0 border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-gradient-to-br from-white to-purple-50 rounded-[2rem] overflow-hidden group cursor-pointer"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <div className="p-6">
+                    <div className="p-6 md:p-8">
                       {/* Menu Header */}
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start justify-between mb-4 md:mb-6">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                              <UtensilsCrossed className="w-6 h-6 text-white" />
+                          <div className="flex items-center gap-3 md:gap-4 mb-2">
+                            <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                              <UtensilsCrossed className="w-6 h-6 md:w-7 md:h-7 text-white" />
                             </div>
                             <div>
-                              <h3 className="font-black text-xl text-[#03081F] group-hover:text-purple-600 transition-colors">
+                              <h3 className="font-black text-xl md:text-2xl text-[#03081F] group-hover:text-purple-600 transition-colors">
                                 {menu.nom}
                               </h3>
                               <div className="flex items-center gap-2 mt-1">
                                 <Award className="w-4 h-4 text-yellow-400" />
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Formule complète</span>
+                                <span className="text-xs md:text-sm font-bold text-gray-500 uppercase tracking-wider">Formule complète</span>
                               </div>
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-purple-600">{formatPrice(menu.prix_fixe)} FCFA</span>
+                            <span className="text-2xl md:text-3xl font-black text-purple-600">{formatPrice(menu.prix_fixe)} FCFA</span>
                           </div>
-                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix fixe</span>
+                          <span className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-wider">Prix fixe</span>
                         </div>
                       </div>
 
@@ -965,8 +1007,8 @@ export const ClientView: React.FC = () => {
 
         {/* TRACKING SCREEN - Enhanced Timeline */}
         {step === 'TRACKING' && currentOrder && (
-          <div className="px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Card className="p-8 bg-gradient-to-br from-white to-green-50 border-none shadow-2xl rounded-[2.5rem]">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Card className="p-8 md:p-10 lg:p-12 bg-gradient-to-br from-white to-green-50 border-none shadow-2xl rounded-[2.5rem] max-w-2xl mx-auto">
               {/* Success Header */}
               <div className="flex items-center justify-center mb-8">
                 <div className="relative">
@@ -1816,6 +1858,10 @@ export const ClientView: React.FC = () => {
           }
         }}
         basketCount={basket.reduce((a, b) => a + b.quantite, 0)}
+      />
+      {/* CHAT WIDGET - IA ASSISTANT */}
+      <ChatWidget
+        platContext={selectedPlat ? { id: selectedPlat.id, nom: selectedPlat.nom } : undefined}
       />
     </div>
   );

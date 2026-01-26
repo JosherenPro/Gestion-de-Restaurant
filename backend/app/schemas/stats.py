@@ -6,6 +6,9 @@ class GlobalStats(BaseModel):
     nombre_commandes: int
     nombre_clients: int
     note_moyenne: float | None = 0.0
+    ticket_moyen: float = 0.0  # CA / nombre_commandes
+    taux_occupation_tables: float = 0.0  # % of currently occupied tables
+    commandes_en_cours: int = 0  # Active orders (not PAYEE)
 
 class DishPopularity(BaseModel):
     plat_id: int

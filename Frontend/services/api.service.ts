@@ -492,6 +492,23 @@ class ApiService {
   async removePlatFromMenu(menuId: number, platId: number, token: string): Promise<any> {
     return this.delete(API_CONFIG.ENDPOINTS.MENUS.REMOVE_PLAT(menuId, platId), { token });
   }
+
+  // Chat IA endpoints
+  async sendChatMessage(
+    question: string,
+    platId?: number,
+    conversationHistory?: Array<{ role: string, content: string }>
+  ): Promise<{ success: boolean, response: string, model?: string, error?: string }> {
+    return this.post('/chat/', {
+      question,
+      plat_id: platId,
+      conversation_history: conversationHistory
+    });
+  }
+
+  async getChatHealth(): Promise<{ service: string, status: string, message: string }> {
+    return this.get('/chat/health');
+  }
 }
 
 export const apiService = new ApiService();

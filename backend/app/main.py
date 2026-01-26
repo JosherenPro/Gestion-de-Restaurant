@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
 import app.models
 from app.routers import (
     utilisateurs,
@@ -14,12 +15,17 @@ from app.routers import (
     plats,
     categories,
     stats,
-    admin
+    admin,
+    chat
 )
 from app.core.database import create_db_and_tables
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
+
+
+# Charger les variables d'environnement
+load_dotenv()
 
 app = FastAPI(title="Restaurant API")
 
@@ -58,3 +64,4 @@ app.include_router(plats.router)
 app.include_router(categories.router)
 app.include_router(stats.router)
 app.include_router(admin.router)
+app.include_router(chat.router)
